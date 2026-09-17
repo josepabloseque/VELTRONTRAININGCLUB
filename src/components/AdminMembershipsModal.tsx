@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Search, ShieldCheck, CheckCircle2, AlertCircle, UserCheck } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
+import { fetchAthletesDirectory } from '../services/athletes.service';
 
 interface AdminMembershipsModalProps {
   isOpen: boolean;
@@ -35,23 +36,20 @@ export const AdminMembershipsModal: React.FC<AdminMembershipsModalProps> = ({
   // Cargar estado de membresías desde Supabase
   const fetchMemberships = async () => {
     try {
-      const { data, error } = await supabase
-        .rpc('get_athletes_directory');
-
-      if (!error && data) {
-        const mapped: MemberRecord[] = data.map((m: any) => ({
-          userId: m.user_id,
-          fullName: m.full_name,
-          email: m.email,
-          phone: m.phone,
-          planName: m.plan_name,
-          status: m.status,
-          expiresAt: m.expires_at,
-        }));
-        setAthletes(mapped);
-      }
-    } catch (err) {
-      console.error('Error fetching memberships from get_athletes_directory RPC:', err);
+      const data = await fetchAthletesDirectory();
+      const mapped: MemberRecord[] = data.map((m) => ({
+        userId: m.user_id,
+        fullName: m.full_name || m.email?.split('@')[0] || 'Atleta',
+        email: m.email || '',
+        phone: m.phone || 'No registrado',
+        planName: m.plan_name || 'Sin plan asignado',
+        status: m.status === 'active' ? 'active' : 'inactive',
+        expiresAt: m.expires_at || null,
+      }));
+      setAthletes(mapped);
+    } catch (err: any) {
+      console.error('Error fetching memberships in AdminMembershipsModal:', err);
+      setErrorMsg(err.message || 'Error al obtener las membresías');
     }
   };
 

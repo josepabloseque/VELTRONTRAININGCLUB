@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, CheckCircle2, AlertCircle, RefreshCw, UserCheck, Phone, Mail, ChevronRight, ChevronDown, X } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { getLocalDateString } from '../lib/dateUtils';
+import { fetchAthletesDirectory } from '../services/athletes.service';
 
 const WhatsAppIcon: React.FC<{ className?: string }> = ({ className = 'w-3.5 h-3.5' }) => (
   <svg
@@ -67,33 +68,31 @@ export const AdminAccessView: React.FC<AdminAccessViewProps> = ({ onMembershipUp
 
   const fetchMemberships = async () => {
     setLoading(true);
+    setErrorMsg(null);
     try {
-      const { data, error } = await supabase
-        .rpc('get_athletes_directory');
+      const data = await fetchAthletesDirectory();
+      const mapped: MemberRecord[] = data.map((m) => ({
+        userId: m.user_id,
+        fullName: m.full_name || m.email?.split('@')[0] || 'Atleta',
+        email: m.email || '',
+        phone: m.phone || 'No registrado',
+        planName: m.plan_name || 'Sin plan asignado',
+        status: m.status === 'active' ? 'active' : 'inactive',
+        expiresAt: m.expires_at || null,
+      }));
+      setAthletes(mapped);
+      memoryAthletesCache = mapped;
 
-      if (!error && data) {
-        const mapped: MemberRecord[] = data.map((m: any) => ({
-          userId: m.user_id,
-          fullName: m.full_name,
-          email: m.email,
-          phone: m.phone,
-          planName: m.plan_name,
-          status: m.status,
-          expiresAt: m.expires_at,
-        }));
-        setAthletes(mapped);
-        memoryAthletesCache = mapped;
-
-        // Actualizar el seleccionado si está abierto
-        if (selectedAthlete) {
-          const fresh = mapped.find((m) => m.userId === selectedAthlete.userId);
-          if (fresh) {
-            setSelectedAthlete(fresh);
-          }
+      // Actualizar el seleccionado si está abierto
+      if (selectedAthlete) {
+        const fresh = mapped.find((m) => m.userId === selectedAthlete.userId);
+        if (fresh) {
+          setSelectedAthlete(fresh);
         }
       }
-    } catch (err) {
-      console.error('Error fetching athletes from get_athletes_directory RPC:', err);
+    } catch (err: any) {
+      console.error('Error fetching athletes in AdminAccessView:', err);
+      setErrorMsg(err.message || 'Error al obtener la lista de atletas');
     } finally {
       setLoading(false);
     }

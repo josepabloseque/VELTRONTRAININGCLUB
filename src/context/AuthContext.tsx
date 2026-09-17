@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabaseClient';
 import type { Membership } from '../types/database';
+import { isAdmin as checkIsAdmin } from '../utils/auth';
 
 interface AuthContextType {
   user: User | null;
@@ -75,9 +76,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Verificación estricta de rol en backend (Auth metadata o Membership role)
   const isAdmin = Boolean(
-    user?.app_metadata?.role === 'admin' || 
-    user?.user_metadata?.role === 'admin' ||
-    user?.user_metadata?.isAdmin === true ||
+    checkIsAdmin(user) ||
     (membership as unknown as { role?: string })?.role === 'admin'
   );
 
