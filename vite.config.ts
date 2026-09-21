@@ -11,7 +11,7 @@ export default defineConfig({
       manifest: {
         name: 'Veltron Training Club',
         short_name: 'Veltron',
-        description: 'App oficial de entrenamiento de alto rendimiento y reservas de Veltron Training Club',
+        description: 'Reserva tus clases, consulta tus horarios y revisa tu membresía.',
         theme_color: '#0A0C0B',
         background_color: '#0A0C0B',
         display: 'standalone',

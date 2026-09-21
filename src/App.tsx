@@ -176,7 +176,12 @@ const Dashboard: React.FC = () => {
       if (!error && data) {
         setBookedClassIds(data.map((b: any) => String(b.class_id)));
         const dates: string[] = data
-          .map((b: any) => b.classes?.date)
+          .map((b: any) => {
+            if (Array.isArray(b.classes)) {
+              return b.classes[0]?.date;
+            }
+            return b.classes?.date;
+          })
           .filter(Boolean);
         setBookedDates(dates);
       }
@@ -214,6 +219,7 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     if (activeTab === 'perfil' || activeTab === 'inicio') {
       fetchUserMetrics();
+      fetchUserBookings();
     }
 
     if (activeTab !== 'clases') return;
@@ -371,14 +377,23 @@ const Dashboard: React.FC = () => {
 
     // Actualización optimista local
     if (isAlreadyBooked) {
-      setBookedClassIds((prev) => prev.filter((id) => id !== classId));
+      const nextBookedIds = bookedClassIds.filter((id) => id !== classId);
+      setBookedClassIds(nextBookedIds);
       setClasses((prev) =>
         prev.map((c) => (c.id === classId ? { ...c, bookedCount: Math.max(0, c.bookedCount - 1) } : c))
       );
+      setBookedDates((prev) => {
+        const hasOtherOnDate = classes.some(
+          (c) => c.id !== classId && nextBookedIds.includes(c.id) && c.date === targetClass.date
+        );
+        return hasOtherOnDate ? prev : prev.filter((d) => d !== targetClass.date);
+      });
+
       try {
         await cancelClassBooking(classId, user.id);
         fetchUserMetrics();
         fetchSupabaseClasses();
+        fetchUserBookings();
       } catch (e: any) {
         console.error('Error al cancelar reserva en Supabase:', e);
         // Rollback
@@ -387,6 +402,7 @@ const Dashboard: React.FC = () => {
           prev.map((c) => (c.id === classId ? { ...c, bookedCount: c.bookedCount + 1 } : c))
         );
         fetchSupabaseClasses();
+        fetchUserBookings();
         alert(e.message || 'No fue posible cancelar la reserva.');
       }
     } else {
@@ -394,10 +410,13 @@ const Dashboard: React.FC = () => {
       setClasses((prev) =>
         prev.map((c) => (c.id === classId ? { ...c, bookedCount: c.bookedCount + 1 } : c))
       );
+      setBookedDates((prev) => Array.from(new Set([...prev, targetClass.date])));
+
       try {
         await reserveClass(classId);
         fetchUserMetrics();
         fetchSupabaseClasses();
+        fetchUserBookings();
       } catch (e: any) {
         console.error('Error al reservar clase con RPC:', e);
         // Rollback
@@ -406,6 +425,7 @@ const Dashboard: React.FC = () => {
           prev.map((c) => (c.id === classId ? { ...c, bookedCount: Math.max(0, c.bookedCount - 1) } : c))
         );
         fetchSupabaseClasses();
+        fetchUserBookings();
         alert(e.message || 'No fue posible reservar el cupo.');
       }
     }
