@@ -694,122 +694,119 @@ const Dashboard: React.FC = () => {
 
         {/* Pestaña: PERFIL */}
         {activeTab === 'perfil' && (
-          <section className="min-h-[calc(100dvh-11.5rem)] flex flex-col justify-between pb-4 animate-in fade-in duration-200">
-            {/* Bloque Superior: Header + Tarjetas */}
-            <div className="space-y-4">
-              {/* Header con Avatar, Nombre, Badge y Botón Sutil de Edición */}
-              <div className="bg-[#121514] border border-zinc-800/80 rounded-2xl p-4 flex items-center justify-between gap-3 shadow-md">
-                <div className="flex items-center gap-3.5 min-w-0">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#1A1F1B] to-[#121514] border border-[#8E8C3A]/50 flex items-center justify-center text-[#B5B04E] font-bebas text-xl shrink-0 shadow-inner select-none">
-                    {fullName.charAt(0).toUpperCase() || 'U'}
-                  </div>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-base font-bold text-white font-barlow leading-tight truncate">
-                        {fullName}
-                      </h3>
-                      {!isAdmin && (
-                        <button
-                          onClick={() => setIsEditProfileOpen(true)}
-                          className="p-1 rounded-lg text-zinc-400 hover:text-[#B5B04E] hover:bg-zinc-800/60 transition-colors"
-                          title="Editar datos de contacto"
-                        >
-                          <Edit3 className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                    </div>
-                    {isAdmin && (
-                      <div className="mt-1 flex items-center">
-                        <span className="text-[9px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border bg-[#3A3A1A] border-[#8E8C3A]/50 text-[#B5B04E] inline-flex items-center">
-                          Administrador
-                        </span>
-                      </div>
+          <section className="space-y-4 animate-in fade-in duration-200">
+            {/* Header con Avatar, Nombre, Badge y Botón Sutil de Edición */}
+            <div className="bg-[#121514] border border-zinc-800/80 rounded-2xl p-4 flex items-center justify-between gap-3 shadow-md">
+              <div className="flex items-center gap-3.5 min-w-0">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#1A1F1B] to-[#121514] border border-[#8E8C3A]/50 flex items-center justify-center text-[#B5B04E] font-bebas text-xl shrink-0 shadow-inner select-none">
+                  {fullName.charAt(0).toUpperCase() || 'U'}
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-base font-bold text-white font-barlow leading-tight truncate">
+                      {fullName}
+                    </h3>
+                    {!isAdmin && (
+                      <button
+                        onClick={() => setIsEditProfileOpen(true)}
+                        className="p-1 rounded-lg text-zinc-400 hover:text-[#B5B04E] hover:bg-zinc-800/60 transition-colors"
+                        title="Editar datos de contacto"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                      </button>
                     )}
                   </div>
-                </div>
-              </div>
-
-              {/* Tarjeta Unificada de Métricas / Estado (Solo Atletas) */}
-              {!isAdmin && (
-                <div className="bg-[#121514] border border-zinc-800/80 rounded-2xl p-4 shadow-md grid grid-cols-2 divide-x divide-zinc-800/80">
-                  {/* Columna 1: Clases completadas */}
-                  <div className="pr-4 flex flex-col justify-between">
-                    <span className="text-[10px] uppercase font-bold tracking-wider text-zinc-400 font-barlow">
-                      Clases Completadas
-                    </span>
-                    <div className="mt-2.5 flex items-baseline gap-1.5">
-                      <span className="font-bebas text-3xl text-[#B5B04E] leading-none">
-                        {completedClassesCount}
+                  {isAdmin && (
+                    <div className="mt-1 flex items-center">
+                      <span className="text-[9px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border bg-[#3A3A1A] border-[#8E8C3A]/50 text-[#B5B04E] inline-flex items-center">
+                        Administrador
                       </span>
-                      <span className="text-[11px] font-semibold text-zinc-400 font-barlow">
-                        {completedClassesCount === 1 ? 'sesión' : 'sesiones'}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Columna 2: Vencimiento de Membresía */}
-                  <div className="pl-4 flex flex-col justify-between">
-                    <span className="text-[10px] uppercase font-bold tracking-wider text-zinc-400 font-barlow">
-                      Vencimiento
-                    </span>
-                    <div className="mt-2.5">
-                      <span className={`font-mono text-sm font-bold block leading-none ${isActive ? 'text-zinc-100' : 'text-red-400'}`}>
-                        {membership?.expires_at ? new Date(membership.expires_at).toLocaleDateString('es-CR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'Sin fecha'}
-                      </span>
-                      <span className={`text-[9px] font-bold uppercase tracking-wider block mt-1.5 ${isActive ? 'text-emerald-400' : 'text-red-400'}`}>
-                        {isActive ? 'Activo' : 'Vencido'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Sección: Información de la Cuenta */}
-              <div className="bg-[#121514] border border-zinc-800/80 rounded-2xl p-4 shadow-md space-y-3 font-barlow">
-                <span className="text-[10px] uppercase font-bold tracking-wider text-zinc-400 block pb-1 border-b border-zinc-800/60">
-                  Información de la Cuenta
-                </span>
-
-                <div className="space-y-3 pt-1">
-                  <div>
-                    <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-bold block mb-0.5">
-                      Correo Electrónico
-                    </span>
-                    <span className="text-white font-medium text-xs break-all block">
-                      {user?.email}
-                    </span>
-                  </div>
-
-                  {(!isAdmin || (phone && phone !== 'No registrado')) && (
-                    <div className="pt-2.5 border-t border-zinc-800/40">
-                      <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-bold block mb-0.5">
-                        Teléfono de Contacto
-                      </span>
-                      <span className="text-white font-medium text-xs block font-mono">
-                        {formatPhone(phone)}
-                      </span>
-                    </div>
-                  )}
-
-                  {!isActive && !isAdmin && (
-                    <div className="pt-3 border-t border-zinc-800/60">
-                      <a
-                        href="https://wa.me/"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="w-full py-2.5 px-3 bg-[#8E8C3A] hover:bg-[#B5B04E] text-black font-bebas text-xs tracking-wider uppercase rounded-xl transition-all flex items-center justify-center gap-1.5 active:scale-[0.98]"
-                      >
-                        <WhatsAppIcon className="w-3.5 h-3.5 shrink-0" />
-                        <span>Contactar Recepción por WhatsApp</span>
-                      </a>
                     </div>
                   )}
                 </div>
               </div>
             </div>
 
-            {/* Enlace sutil y discreto para Cerrar Sesión (Anclado al fondo útil) */}
-            <div className="pt-6 pb-2 text-center">
+            {/* Tarjeta Unificada de Métricas / Estado (Solo Atletas) */}
+            {!isAdmin && (
+              <div className="bg-[#121514] border border-zinc-800/80 rounded-2xl p-4 shadow-md grid grid-cols-2 divide-x divide-zinc-800/80">
+                {/* Columna 1: Clases completadas */}
+                <div className="pr-4 flex flex-col justify-between">
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-zinc-400 font-barlow">
+                    Clases Completadas
+                  </span>
+                  <div className="mt-2.5 flex items-baseline gap-1.5">
+                    <span className="font-bebas text-3xl text-[#B5B04E] leading-none">
+                      {completedClassesCount}
+                    </span>
+                    <span className="text-[11px] font-semibold text-zinc-400 font-barlow">
+                      {completedClassesCount === 1 ? 'sesión' : 'sesiones'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Columna 2: Vencimiento de Membresía */}
+                <div className="pl-4 flex flex-col justify-between">
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-zinc-400 font-barlow">
+                    Vencimiento
+                  </span>
+                  <div className="mt-2.5">
+                    <span className={`font-mono text-sm font-bold block leading-none ${isActive ? 'text-zinc-100' : 'text-red-400'}`}>
+                      {membership?.expires_at ? new Date(membership.expires_at).toLocaleDateString('es-CR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'Sin fecha'}
+                    </span>
+                    <span className={`text-[9px] font-bold uppercase tracking-wider block mt-1.5 ${isActive ? 'text-emerald-400' : 'text-red-400'}`}>
+                      {isActive ? 'Activo' : 'Vencido'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Sección: Información de la Cuenta */}
+            <div className="bg-[#121514] border border-zinc-800/80 rounded-2xl p-4 shadow-md space-y-3 font-barlow">
+              <span className="text-[10px] uppercase font-bold tracking-wider text-zinc-400 block pb-1 border-b border-zinc-800/60">
+                Información de la Cuenta
+              </span>
+
+              <div className="space-y-3 pt-1">
+                <div>
+                  <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-bold block mb-0.5">
+                    Correo Electrónico
+                  </span>
+                  <span className="text-white font-medium text-xs break-all block">
+                    {user?.email}
+                  </span>
+                </div>
+
+                {(!isAdmin || (phone && phone !== 'No registrado')) && (
+                  <div className="pt-2.5 border-t border-zinc-800/40">
+                    <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-bold block mb-0.5">
+                      Teléfono de Contacto
+                    </span>
+                    <span className="text-white font-medium text-xs block font-mono">
+                      {formatPhone(phone)}
+                    </span>
+                  </div>
+                )}
+
+                {!isActive && !isAdmin && (
+                  <div className="pt-3 border-t border-zinc-800/60">
+                    <a
+                      href="https://wa.me/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full py-2.5 px-3 bg-[#8E8C3A] hover:bg-[#B5B04E] text-black font-bebas text-xs tracking-wider uppercase rounded-xl transition-all flex items-center justify-center gap-1.5 active:scale-[0.98]"
+                    >
+                      <WhatsAppIcon className="w-3.5 h-3.5 shrink-0" />
+                      <span>Contactar Recepción por WhatsApp</span>
+                    </a>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Enlace sutil y discreto para Cerrar Sesión */}
+            <div className="pt-3 pb-1 text-center">
               <button
                 onClick={() => signOut()}
                 className="inline-flex items-center gap-1.5 py-2 px-4 text-zinc-500 hover:text-red-400 text-xs font-semibold font-barlow uppercase tracking-wider rounded-xl hover:bg-red-950/20 transition-all active:scale-95"

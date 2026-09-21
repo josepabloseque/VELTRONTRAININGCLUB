@@ -66,6 +66,17 @@ export const AdminAccessView: React.FC<AdminAccessViewProps> = ({ onMembershipUp
   // Inicializa con el estado cacheado en memoria (100% dinámico)
   const [athletes, setAthletes] = useState<MemberRecord[]>(memoryAthletesCache);
 
+  useEffect(() => {
+    if (selectedAthlete) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [selectedAthlete]);
+
   const fetchMemberships = async () => {
     setLoading(true);
     setErrorMsg(null);

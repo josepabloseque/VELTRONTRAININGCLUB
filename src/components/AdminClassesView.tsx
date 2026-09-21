@@ -149,7 +149,7 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
 
       {/* VISTA 1: FORMULARIO EXCLUSIVO (AGREGAR / EDITAR) */}
       {showForm ? (
-        <div className="space-y-4 pb-36 sm:pb-8 animate-in fade-in duration-200">
+        <div className="space-y-4 pb-6 sm:pb-8 animate-in fade-in duration-200">
           {/* Encabezado del Formulario */}
           <div>
             <h2 className="font-bebas text-2xl tracking-wide uppercase text-white leading-none">
@@ -170,7 +170,7 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="Ej: Tactical WOD • Strength & Conditioning"
-                  className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2.5 px-3.5 text-base sm:text-xs text-white placeholder-zinc-500 focus:outline-none transition-colors font-barlow"
+                  className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2.5 px-3.5 text-base sm:text-sm text-white placeholder-zinc-500 focus:outline-none transition-colors font-barlow"
                 />
               </div>
 
@@ -312,7 +312,10 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Ej: Sesión integral enfocada en potencia muscular con barra y conditioning metabólico."
-                  className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2.5 px-3.5 text-base sm:text-sm text-white placeholder-zinc-500 focus:outline-none transition-colors font-barlow resize-none leading-relaxed min-h-[90px]"
+                  className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2.5 px-3.5 text-base sm:text-sm text-white placeholder-zinc-500 focus:outline-none transition-colors font-barlow resize-none leading-relaxed"
+                  autoCapitalize="sentences"
+                  autoCorrect="on"
+                  spellCheck="false"
                 />
               </div>
 

@@ -195,11 +195,14 @@ export const AdminClassModal: React.FC<AdminClassModalProps> = ({
               Enfoque / Objetivo del WOD
             </label>
             <textarea
-              rows={2}
+              rows={3}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Ej: Sesión orientada al desarrollo de potencia en tren inferior y capacidad aeróbica sostenida."
-              className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2.5 px-3.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#8E8C3A] transition-all font-barlow resize-none"
+              className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2.5 px-3.5 text-base sm:text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#8E8C3A] transition-all font-barlow resize-none leading-relaxed"
+              autoCapitalize="sentences"
+              autoCorrect="on"
+              spellCheck="false"
             />
           </div>
 

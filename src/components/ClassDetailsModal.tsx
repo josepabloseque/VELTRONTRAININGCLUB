@@ -29,6 +29,17 @@ export const ClassDetailsModal: React.FC<ClassDetailsModalProps> = ({
   isAdmin = false,
   onToggleBooking,
 }) => {
+  React.useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
+
   if (!isOpen || !selectedClass) return null;
 
   const isPast = isClassPast(selectedClass.date, selectedClass.time);

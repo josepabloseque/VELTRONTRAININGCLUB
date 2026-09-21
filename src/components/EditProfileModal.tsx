@@ -24,11 +24,17 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
+      document.body.style.overflow = 'hidden';
       setName(initialName);
       setPhone(initialPhone === 'No registrado' ? '' : initialPhone);
       setError(null);
       setSuccess(false);
+    } else {
+      document.body.style.overflow = '';
     }
+    return () => {
+      document.body.style.overflow = '';
+    };
   }, [isOpen, initialName, initialPhone]);
 
   if (!isOpen) return null;
