@@ -149,7 +149,7 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
 
       {/* VISTA 1: FORMULARIO EXCLUSIVO (AGREGAR / EDITAR) */}
       {showForm ? (
-        <div className="space-y-4 pb-6 sm:pb-8 animate-in fade-in duration-200">
+        <div className="space-y-4 pb-2 sm:pb-4 animate-in fade-in duration-200">
           {/* Encabezado del Formulario */}
           <div>
             <h2 className="font-bebas text-2xl tracking-wide uppercase text-white leading-none">

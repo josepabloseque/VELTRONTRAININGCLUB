@@ -458,20 +458,20 @@ export const AdminAccessView: React.FC<AdminAccessViewProps> = ({ onMembershipUp
                     type="date"
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
-                    className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2.5 px-3 text-center text-xs font-mono text-white focus:outline-none transition-colors [color-scheme:dark]"
+                    className="w-full h-11 min-h-[44px] bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl px-3 text-center text-xs font-mono text-zinc-200 focus:outline-none transition-colors [color-scheme:dark]"
                   />
                 </div>
 
                 {/* Hasta / Vencimiento Editable */}
                 <div className="space-y-1.5">
-                  <span className="block text-[11px] uppercase tracking-wider text-[#B5B04E] font-semibold font-barlow">
+                  <span className="block text-[11px] uppercase tracking-wider text-zinc-400 font-semibold font-barlow">
                     Hasta
                   </span>
                   <input
                     type="date"
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
-                    className="w-full bg-[#0A0C0B] border border-[#8E8C3A]/70 focus:border-[#8E8C3A] rounded-xl py-2.5 px-3 text-center text-xs font-mono text-[#B5B04E] font-bold focus:outline-none transition-colors [color-scheme:dark]"
+                    className="w-full h-11 min-h-[44px] bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl px-3 text-center text-xs font-mono text-zinc-200 focus:outline-none transition-colors [color-scheme:dark]"
                   />
                 </div>
               </div>

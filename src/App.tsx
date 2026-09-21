@@ -412,7 +412,7 @@ const Dashboard: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0A0C0B] text-white flex flex-col justify-between font-sans selection:bg-[#8E8C3A]/30 pb-20">
+    <div className="min-h-screen bg-[#0A0C0B] text-white flex flex-col font-sans selection:bg-[#8E8C3A]/30 pb-20">
       {/* Header Superior con soporte Safe-Area para Notch / Dynamic Island */}
       <header className="sticky top-0 z-30 bg-[#0A0C0B] border-b border-zinc-900 px-5 pt-[calc(0.75rem+env(safe-area-inset-top,0px))] pb-3.5">
         <div className="max-w-md mx-auto flex items-center gap-2.5">
