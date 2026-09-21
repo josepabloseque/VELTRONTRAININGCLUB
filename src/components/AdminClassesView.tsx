@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Plus, Trash2, CheckCircle2, Calendar, ChevronRight } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Plus, Trash2, CheckCircle2, Calendar, ChevronRight, X } from 'lucide-react';
 import type { TrainingClass } from '../types/database';
 import { getLocalDateString, getTomorrowDateString, isClassPast } from '../lib/dateUtils';
 
@@ -55,6 +55,17 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
   const todayStr = getLocalDateString();
   const tomorrowStr = getTomorrowDateString();
 
+  useEffect(() => {
+    if (showForm) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [showForm]);
+
   const resetFormFields = () => {
     setTitle('');
     setSelectedDate(getLocalDateString());
@@ -69,7 +80,6 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
   const handleOpenAdd = () => {
     resetFormFields();
     setShowForm(true);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleStartEdit = (cls: TrainingClass) => {
@@ -83,7 +93,6 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
     setCapacity(cls.capacity);
     setDescription(cls.workoutDescription);
     setShowForm(true);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleCloseForm = () => {
@@ -147,17 +156,139 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
         </div>
       )}
 
-      {/* VISTA 1: FORMULARIO EXCLUSIVO (AGREGAR / EDITAR) */}
-      {showForm ? (
-        <div className="space-y-4 pb-16 sm:pb-8 animate-in fade-in duration-200">
-          {/* Encabezado del Formulario */}
+      {/* LISTA DE CLASES PROGRAMADAS (Vista base) */}
+      <div className="space-y-4 animate-in fade-in duration-200">
+        {/* Encabezado */}
+        <div className="flex justify-between items-center">
           <div>
             <h2 className="font-bebas text-2xl tracking-wide uppercase text-white leading-none">
-              {editingClass ? 'Editar Clase' : 'Nueva Sesión de Clase'}
+              Configuración de Clases
             </h2>
+            <p className="text-xs text-zinc-400 font-barlow mt-0.5">
+              Administra los horarios y programación
+            </p>
           </div>
 
-          <div className="bg-[#121514] border border-[#8E8C3A]/40 rounded-2xl p-5 shadow-xl">
+          <button
+            onClick={handleOpenAdd}
+            className="py-2 px-3 bg-[#8E8C3A] hover:bg-[#B5B04E] text-black font-bebas text-xs tracking-wider uppercase rounded-xl transition-all flex items-center gap-1.5 active:scale-95 leading-none shadow-[0_0_12px_rgba(142,140,58,0.25)]"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Agregar Clase</span>
+          </button>
+        </div>
+
+        {/* Listado de Clases */}
+        <div className="space-y-2.5">
+          {classes.length === 0 ? (
+            <div className="p-8 text-center text-zinc-500 text-xs font-barlow bg-[#121514] rounded-2xl border border-zinc-800/80">
+              No hay clases programadas. Toca "Agregar Clase" para crear una.
+            </div>
+          ) : (
+            classes.map((item) => {
+              const isFull = (item.bookedCount || 0) >= item.capacity;
+              const isCurrentlyEditing = editingClass?.id === item.id;
+              const isPast = isClassPast(item.date, item.time);
+
+              return (
+                <div
+                  key={item.id}
+                  onClick={() => handleStartEdit(item)}
+                  className={`border rounded-2xl p-4 transition-all group shadow-sm backdrop-blur-sm cursor-pointer active:scale-[0.99] ${
+                    isCurrentlyEditing
+                      ? 'bg-[#8E8C3A]/20 border-[#B5B04E]'
+                      : isPast
+                      ? 'bg-zinc-900/40 border-zinc-800/60 opacity-80'
+                      : 'bg-[#8E8C3A]/[0.08] hover:bg-[#8E8C3A]/[0.13] border-[#8E8C3A]/30 hover:border-[#8E8C3A]/60'
+                  }`}
+                >
+                  <div className="flex justify-between items-start gap-2 mb-2">
+                    <div className="flex-1 min-w-0 pr-1">
+                      <h3 className={`text-sm font-bold font-barlow truncate ${isPast ? 'text-zinc-400' : 'text-white group-hover:text-[#B5B04E] transition-colors'}`}>
+                        {item.title}
+                      </h3>
+                    </div>
+
+                    <span className="text-xs font-mono bg-black/50 border border-[#8E8C3A]/30 text-zinc-200 px-2 py-1 rounded-lg shrink-0">
+                      {item.time}
+                    </span>
+                  </div>
+
+                  <div className="pt-2.5 mt-2.5 border-t border-[#8E8C3A]/20 flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 text-xs font-barlow">
+                      <span className="text-zinc-400 font-medium">Inscritos:</span>
+                      <div className="flex items-baseline font-mono font-bold">
+                        <span className={`text-base ${isPast ? 'text-zinc-500' : isFull ? 'text-red-400' : 'text-[#B5B04E]'}`}>
+                          {item.bookedCount || 0}
+                        </span>
+                        <span className="text-xs text-zinc-400 ml-0.5 font-normal">
+                          /{item.capacity}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      {/* Botón Eliminar rápido */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (window.confirm(`¿Seguro que deseas eliminar la clase "${item.title}" a las ${item.time}?`)) {
+                            onDeleteClass(item.id);
+                          }
+                        }}
+                        className="p-1.5 text-zinc-500 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/30 rounded-lg transition-colors"
+                        title="Eliminar clase"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+
+                      <div className="flex items-center gap-1 text-zinc-400 group-hover:text-[#B5B04E] transition-colors text-[10px] font-semibold uppercase tracking-wider font-barlow">
+                        <span>Editar</span>
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
+
+      {/* MODAL FLOTANTE CENTRADO (AGREGAR / EDITAR CLASE) */}
+      {showForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200">
+          {/* Backdrop oscuro con blur que congela y cubre toda la pantalla */}
+          <div 
+            className="fixed inset-0 bg-black/85 backdrop-blur-sm"
+            onClick={handleCloseForm}
+            aria-hidden="true"
+          />
+
+          {/* Tarjeta Modal */}
+          <div 
+            className="relative z-10 w-full max-w-lg max-h-[90vh] overflow-y-auto bg-[#121514] border border-[#8E8C3A]/40 rounded-2xl p-5 sm:p-6 text-white shadow-[0_20px_60px_rgba(0,0,0,0.95)]"
+            role="dialog"
+            aria-modal="true"
+          >
+            {/* Botón Cerrar (X) */}
+            <button
+              onClick={handleCloseForm}
+              className="absolute right-4 top-4 sm:right-5 sm:top-5 text-zinc-400 hover:text-white p-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800/80 transition-colors z-20 flex items-center justify-center"
+              aria-label="Cerrar modal"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            {/* Encabezado del Formulario */}
+            <div className="mb-4 pr-10">
+              <h2 className="font-bebas text-2xl tracking-wide uppercase text-white leading-none">
+                {editingClass ? 'Editar Clase' : 'Nueva Sesión de Clase'}
+              </h2>
+            </div>
+
+            {/* Formulario */}
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Nombre de la Clase */}
               <div>
@@ -346,106 +477,6 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      ) : (
-        /* VISTA 2: LISTA DE CLASES PROGRAMADAS */
-        <div className="space-y-4 animate-in fade-in duration-200">
-          {/* Encabezado */}
-          <div className="flex justify-between items-center">
-            <div>
-              <h2 className="font-bebas text-2xl tracking-wide uppercase text-white leading-none">
-                Configuración de Clases
-              </h2>
-              <p className="text-xs text-zinc-400 font-barlow mt-0.5">
-                Administra los horarios y programación
-              </p>
-            </div>
-
-            <button
-              onClick={handleOpenAdd}
-              className="py-2 px-3 bg-[#8E8C3A] hover:bg-[#B5B04E] text-black font-bebas text-xs tracking-wider uppercase rounded-xl transition-all flex items-center gap-1.5 active:scale-95 leading-none shadow-[0_0_12px_rgba(142,140,58,0.25)]"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Agregar Clase</span>
-            </button>
-          </div>
-
-          {/* Listado de Clases */}
-          <div className="space-y-2.5">
-            {classes.length === 0 ? (
-              <div className="p-8 text-center text-zinc-500 text-xs font-barlow bg-[#121514] rounded-2xl border border-zinc-800/80">
-                No hay clases programadas. Toca "Agregar Clase" para crear una.
-              </div>
-            ) : (
-              classes.map((item) => {
-                const isFull = (item.bookedCount || 0) >= item.capacity;
-                const isCurrentlyEditing = editingClass?.id === item.id;
-                const isPast = isClassPast(item.date, item.time);
-
-                return (
-                  <div
-                    key={item.id}
-                    onClick={() => handleStartEdit(item)}
-                    className={`border rounded-2xl p-4 transition-all group shadow-sm backdrop-blur-sm cursor-pointer active:scale-[0.99] ${
-                      isCurrentlyEditing
-                        ? 'bg-[#8E8C3A]/20 border-[#B5B04E]'
-                        : isPast
-                        ? 'bg-zinc-900/40 border-zinc-800/60 opacity-80'
-                        : 'bg-[#8E8C3A]/[0.08] hover:bg-[#8E8C3A]/[0.13] border-[#8E8C3A]/30 hover:border-[#8E8C3A]/60'
-                    }`}
-                  >
-                    <div className="flex justify-between items-start gap-2 mb-2">
-                      <div className="flex-1 min-w-0 pr-1">
-                        <h3 className={`text-sm font-bold font-barlow truncate ${isPast ? 'text-zinc-400' : 'text-white group-hover:text-[#B5B04E] transition-colors'}`}>
-                          {item.title}
-                        </h3>
-                      </div>
-
-                      <span className="text-xs font-mono bg-black/50 border border-[#8E8C3A]/30 text-zinc-200 px-2 py-1 rounded-lg shrink-0">
-                        {item.time}
-                      </span>
-                    </div>
-
-                    <div className="pt-2.5 mt-2.5 border-t border-[#8E8C3A]/20 flex items-center justify-between">
-                      <div className="flex items-center gap-1.5 text-xs font-barlow">
-                        <span className="text-zinc-400 font-medium">Inscritos:</span>
-                        <div className="flex items-baseline font-mono font-bold">
-                          <span className={`text-base ${isPast ? 'text-zinc-500' : isFull ? 'text-red-400' : 'text-[#B5B04E]'}`}>
-                            {item.bookedCount || 0}
-                          </span>
-                          <span className="text-xs text-zinc-400 ml-0.5 font-normal">
-                            /{item.capacity}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-3">
-                        {/* Botón Eliminar rápido */}
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (window.confirm(`¿Seguro que deseas eliminar la clase "${item.title}" a las ${item.time}?`)) {
-                              onDeleteClass(item.id);
-                            }
-                          }}
-                          className="p-1.5 text-zinc-500 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/30 rounded-lg transition-colors"
-                          title="Eliminar clase"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-
-                        <div className="flex items-center gap-1 text-zinc-400 group-hover:text-[#B5B04E] transition-colors text-[10px] font-semibold uppercase tracking-wider font-barlow">
-                          <span>Editar</span>
-                          <ChevronRight className="w-3.5 h-3.5" />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
-            )}
           </div>
         </div>
       )}
