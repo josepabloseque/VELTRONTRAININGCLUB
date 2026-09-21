@@ -50,7 +50,6 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
   const [period, setPeriod] = useState<'AM' | 'PM'>('AM');
   const [capacity, setCapacity] = useState<number | string>(16);
   const [description, setDescription] = useState('');
-  const [isDescriptionFocused, setIsDescriptionFocused] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   const todayStr = getLocalDateString();
@@ -64,7 +63,6 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
     setPeriod('AM');
     setCapacity(16);
     setDescription('');
-    setIsDescriptionFocused(false);
     setEditingClass(null);
   };
 
@@ -151,7 +149,7 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
 
       {/* VISTA 1: FORMULARIO EXCLUSIVO (AGREGAR / EDITAR) */}
       {showForm ? (
-        <div className="space-y-4 animate-in fade-in duration-200">
+        <div className="space-y-4 pb-36 sm:pb-8 animate-in fade-in duration-200">
           {/* Encabezado del Formulario */}
           <div>
             <h2 className="font-bebas text-2xl tracking-wide uppercase text-white leading-none">
@@ -172,7 +170,7 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="Ej: Tactical WOD • Strength & Conditioning"
-                  className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2.5 px-3.5 text-xs text-white placeholder-zinc-500 focus:outline-none transition-colors font-barlow"
+                  className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2.5 px-3.5 text-base sm:text-xs text-white placeholder-zinc-500 focus:outline-none transition-colors font-barlow"
                 />
               </div>
 
@@ -223,7 +221,7 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
                     <select
                       value={hour}
                       onChange={(e) => setHour(e.target.value)}
-                      className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2 px-2 text-xs text-white focus:outline-none transition-colors font-mono text-center"
+                      className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2 px-2 text-base sm:text-xs text-white focus:outline-none transition-colors font-mono text-center"
                       title="Selecciona la hora"
                     >
                       {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((h) => (
@@ -237,7 +235,7 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
                     <select
                       value={minute}
                       onChange={(e) => setMinute(e.target.value)}
-                      className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2 px-2 text-xs text-white focus:outline-none transition-colors font-mono text-center"
+                      className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2 px-2 text-base sm:text-xs text-white focus:outline-none transition-colors font-mono text-center"
                       title="Selecciona los minutos"
                     >
                       {['00', '15', '30', '45'].map((m) => (
@@ -299,7 +297,7 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
                         setCapacity(16);
                       }
                     }}
-                    className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2 px-3 text-center text-xs font-mono text-white focus:outline-none transition-colors"
+                    className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2 px-3 text-center text-base sm:text-xs font-mono text-white focus:outline-none transition-colors"
                   />
                 </div>
               </div>
@@ -310,16 +308,11 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
                   Enfoque del WOD / Descripción
                 </label>
                 <textarea
+                  rows={3}
                   value={description}
-                  onFocus={() => setIsDescriptionFocused(true)}
-                  onBlur={() => setIsDescriptionFocused(false)}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Ej: Sesión integral enfocada en potencia muscular con barra y conditioning metabólico."
-                  className={`w-full bg-[#0A0C0B] border rounded-xl py-3 px-3.5 text-sm text-white placeholder-zinc-500 focus:outline-none transition-all duration-300 font-barlow resize-none leading-relaxed ${
-                    isDescriptionFocused
-                      ? 'min-h-[220px] border-[#8E8C3A] shadow-[0_0_15px_rgba(142,140,58,0.15)]'
-                      : 'min-h-[80px] border-zinc-800'
-                  }`}
+                  className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2.5 px-3.5 text-base sm:text-sm text-white placeholder-zinc-500 focus:outline-none transition-colors font-barlow resize-none leading-relaxed min-h-[90px]"
                 />
               </div>
 

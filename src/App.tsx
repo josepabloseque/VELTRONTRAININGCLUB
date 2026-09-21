@@ -10,13 +10,16 @@ import { AdminMembershipsModal } from './components/AdminMembershipsModal';
 import { AdminAccessView } from './components/AdminAccessView';
 import { AdminClassesView } from './components/AdminClassesView';
 import { ClassDetailsModal } from './components/ClassDetailsModal';
+import { EditProfileModal } from './components/EditProfileModal';
 import type { TrainingClass } from './types/database';
 import { 
   User, 
   House, 
-  ChevronRight
+  ChevronRight,
+  CheckCircle2,
+  Edit3
 } from 'lucide-react';
-import { BicepsFlexedIcon } from './components/BicepsFlexedIcon';
+import { reserveClass, cancelClassBooking } from './services/bookings.service';
 
 // Custom Logout Icon solicitado
 const LogoutCustomIcon: React.FC<{ className?: string }> = ({ className = 'w-5 h-5' }) => (
@@ -96,6 +99,7 @@ const Dashboard: React.FC = () => {
   const [isClassModalOpen, setIsClassModalOpen] = useState(false);
   const [isMembershipsModalOpen, setIsMembershipsModalOpen] = useState(false);
   const [selectedClass, setSelectedClass] = useState<TrainingClass | null>(null);
+  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
 
   // Clases registradas (100% dinámicas desde Supabase)
   const [classes, setClasses] = useState<TrainingClass[]>(() => {
@@ -128,6 +132,7 @@ const Dashboard: React.FC = () => {
   });
 
   const [completedClassesCount, setCompletedClassesCount] = useState<number>(0);
+  const [bookedDates, setBookedDates] = useState<string[]>([]);
 
   // Función reutilizable para consultar clases desde Supabase (solo de Hoy en adelante)
   const fetchSupabaseClasses = async () => {
@@ -165,11 +170,15 @@ const Dashboard: React.FC = () => {
     try {
       const { data, error } = await supabase
         .from('class_bookings')
-        .select('class_id')
+        .select('class_id, classes(date)')
         .eq('user_id', user.id);
 
       if (!error && data) {
         setBookedClassIds(data.map((b: any) => String(b.class_id)));
+        const dates: string[] = data
+          .map((b: any) => b.classes?.date)
+          .filter(Boolean);
+        setBookedDates(dates);
       }
     } catch (err) {
       console.error('Error al sincronizar reservas desde Supabase:', err);
@@ -242,6 +251,18 @@ const Dashboard: React.FC = () => {
 
   const fullName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Usuario';
   const phone = user?.user_metadata?.phone || 'No registrado';
+
+  const formatPhone = (rawPhone: string) => {
+    if (!rawPhone || rawPhone === 'No registrado') return 'No registrado';
+    const clean = rawPhone.replace(/\D/g, '');
+    if (clean.length === 8) {
+      return `${clean.slice(0, 4)}-${clean.slice(4)}`;
+    }
+    if (clean.length === 11 && clean.startsWith('506')) {
+      return `+506 ${clean.slice(3, 7)}-${clean.slice(7)}`;
+    }
+    return rawPhone;
+  };
 
   const handleSaveClass = async (newClass: TrainingClass) => {
     // Actualización optimista local
@@ -355,14 +376,18 @@ const Dashboard: React.FC = () => {
         prev.map((c) => (c.id === classId ? { ...c, bookedCount: Math.max(0, c.bookedCount - 1) } : c))
       );
       try {
-        await supabase
-          .from('class_bookings')
-          .delete()
-          .eq('class_id', classId)
-          .eq('user_id', user.id);
+        await cancelClassBooking(classId, user.id);
         fetchUserMetrics();
-      } catch (e) {
+        fetchSupabaseClasses();
+      } catch (e: any) {
         console.error('Error al cancelar reserva en Supabase:', e);
+        // Rollback
+        setBookedClassIds((prev) => [...prev, classId]);
+        setClasses((prev) =>
+          prev.map((c) => (c.id === classId ? { ...c, bookedCount: c.bookedCount + 1 } : c))
+        );
+        fetchSupabaseClasses();
+        alert(e.message || 'No fue posible cancelar la reserva.');
       }
     } else {
       setBookedClassIds((prev) => [...prev, classId]);
@@ -370,13 +395,18 @@ const Dashboard: React.FC = () => {
         prev.map((c) => (c.id === classId ? { ...c, bookedCount: c.bookedCount + 1 } : c))
       );
       try {
-        await supabase.from('class_bookings').insert({
-          class_id: classId,
-          user_id: user.id,
-        });
+        await reserveClass(classId);
         fetchUserMetrics();
-      } catch (e) {
-        console.error('Error al crear reserva en Supabase:', e);
+        fetchSupabaseClasses();
+      } catch (e: any) {
+        console.error('Error al reservar clase con RPC:', e);
+        // Rollback
+        setBookedClassIds((prev) => prev.filter((id) => id !== classId));
+        setClasses((prev) =>
+          prev.map((c) => (c.id === classId ? { ...c, bookedCount: Math.max(0, c.bookedCount - 1) } : c))
+        );
+        fetchSupabaseClasses();
+        alert(e.message || 'No fue posible reservar el cupo.');
       }
     }
   };
@@ -385,7 +415,7 @@ const Dashboard: React.FC = () => {
     <div className="min-h-screen bg-[#0A0C0B] text-white flex flex-col justify-between font-sans selection:bg-[#8E8C3A]/30 pb-20">
       {/* Header Superior con soporte Safe-Area para Notch / Dynamic Island */}
       <header className="sticky top-0 z-30 bg-[#0A0C0B] border-b border-zinc-900 px-5 pt-[calc(0.75rem+env(safe-area-inset-top,0px))] pb-3.5">
-        <div className="max-w-md mx-auto flex justify-between items-center">
+        <div className="max-w-md mx-auto flex items-center gap-2.5">
           <VeltronLogo size="sm" />
           <p className="font-bebas text-lg tracking-wider text-[#B5B04E] uppercase leading-none">
             Training Club
@@ -394,35 +424,90 @@ const Dashboard: React.FC = () => {
       </header>
 
       {/* Contenido Principal */}
-      <main className="max-w-md mx-auto w-full px-5 pt-5 space-y-5 flex-1">
+      <main className="max-w-md mx-auto w-full px-5 pt-7 sm:pt-8 space-y-6 flex-1">
 
 
         {/* Pestaña: INICIO (Exclusivo Atletas) */}
         {!isAdmin && activeTab === 'inicio' && (
-          <section className="space-y-6">
-            {/* Tarjeta de Historial / Récord Total de Entrenamientos */}
-            <div className="bg-[#121514] border border-[#8E8C3A]/30 rounded-2xl p-4 relative overflow-hidden shadow-md">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-[#8E8C3A]/15 border border-[#8E8C3A]/40 flex items-center justify-center text-[#B5B04E] shrink-0">
-                  <BicepsFlexedIcon size={28} className="text-[#B5B04E]" />
-                </div>
+          <section className="space-y-8">
+            {/* Barra de Asistencia / Racha Semanal (Lunes a Viernes) */}
+            {(() => {
+              const now = new Date();
+              const currentDay = now.getDay();
+              // Si es domingo (0), apunta al lunes siguiente (+1 día) para iniciar la nueva semana
+              const diffToMonday = currentDay === 0 ? 1 : 1 - currentDay;
+              const monday = new Date(now);
+              monday.setDate(now.getDate() + diffToMonday);
 
-                <div className="flex-1 min-w-0">
-                  <span className="text-[10px] uppercase font-bold tracking-wider text-zinc-400 font-barlow block mb-0.5">
-                    HISTORIAL DE ENTRENAMIENTOS
-                  </span>
+              const weekDays = [
+                { label: 'LUN', full: 'Lunes' },
+                { label: 'MAR', full: 'Martes' },
+                { label: 'MIÉ', full: 'Miércoles' },
+                { label: 'JUE', full: 'Jueves' },
+                { label: 'VIE', full: 'Viernes' },
+              ].map((item, idx) => {
+                const d = new Date(monday);
+                d.setDate(monday.getDate() + idx);
+                const dateStr = getLocalDateString(d);
+                return {
+                  label: item.label,
+                  full: item.full,
+                  dateStr,
+                  dayNumber: d.getDate(),
+                  isToday: dateStr === getLocalDateString(now),
+                };
+              });
 
-                  <div className="flex items-baseline gap-2">
-                    <span className="font-bebas text-3xl font-bold text-white tracking-wide leading-none">
-                      {completedClassesCount}
-                    </span>
-                    <span className="text-xs text-zinc-300 font-barlow">
-                      {completedClassesCount === 1 ? 'clase completada en el club' : 'clases completadas en el club'}
-                    </span>
+              const activeBookedDates = Array.from(
+                new Set([
+                  ...bookedDates,
+                  ...classes.filter((c) => bookedClassIds.includes(c.id)).map((c) => c.date),
+                ])
+              );
+
+              return (
+                <div className="space-y-3">
+                  <h3 className="font-bebas text-xl tracking-wide uppercase text-white leading-none">
+                    Semana de Entrenamiento
+                  </h3>
+                  <div className="bg-[#121514] border border-[#8E8C3A]/30 rounded-2xl p-3.5 sm:p-4 shadow-md">
+                    {/* Bloques de días LUN - MAR - MIÉ - JUE - VIE */}
+                    <div className="grid grid-cols-5 gap-2">
+                    {weekDays.map((day) => {
+                      const isBooked = activeBookedDates.includes(day.dateStr);
+
+                      return (
+                        <div
+                          key={day.dateStr}
+                          className={`flex flex-col items-center justify-center py-3.5 sm:py-4 px-1 rounded-xl border transition-all ${
+                            isBooked
+                              ? 'bg-emerald-950/60 border-emerald-500/70 text-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.2)]'
+                              : day.isToday
+                              ? 'bg-zinc-900/90 border-[#8E8C3A]/60 text-zinc-300'
+                              : 'bg-[#0A0C0B] border-zinc-800/80 text-zinc-500'
+                          }`}
+                        >
+                          <span className={`text-[10px] font-bold tracking-wider font-barlow ${isBooked ? 'text-emerald-400' : day.isToday ? 'text-[#B5B04E]' : 'text-zinc-500'}`}>
+                            {day.label}
+                          </span>
+                          <span className={`font-mono text-sm font-bold mt-1 ${isBooked ? 'text-white' : day.isToday ? 'text-zinc-200' : 'text-zinc-500'}`}>
+                            {day.dayNumber}
+                          </span>
+                          <div className="mt-1.5 flex items-center justify-center">
+                            {isBooked ? (
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                            ) : (
+                              <div className={`w-1.5 h-1.5 rounded-full ${day.isToday ? 'bg-[#8E8C3A]' : 'bg-zinc-800'}`} />
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
-            </div>
+            );
+          })()}
 
             {/* Días / Clases Agendadas por el Usuario */}
             <div className="space-y-3">
@@ -449,11 +534,12 @@ const Dashboard: React.FC = () => {
                   </button>
                 </div>
               ) : (
-                <div className="space-y-2.5">
+                <div className="space-y-3">
                   {classes
                     .filter((c) => bookedClassIds.includes(c.id))
                     .map((item) => {
                       const isPast = isClassPast(item.date, item.time);
+                      const isFull = (item.bookedCount || 0) >= item.capacity;
 
                       return (
                         <div
@@ -462,24 +548,45 @@ const Dashboard: React.FC = () => {
                           className={`border rounded-2xl p-4 transition-all cursor-pointer group shadow-sm backdrop-blur-sm ${
                             isPast
                               ? 'bg-zinc-900/40 border-zinc-800/60 opacity-80'
-                              : 'bg-[#8E8C3A]/[0.10] hover:bg-[#8E8C3A]/[0.16] border-[#8E8C3A]/40 hover:border-[#8E8C3A]/70'
+                              : 'bg-[#8E8C3A]/[0.08] hover:bg-[#8E8C3A]/[0.13] border-[#8E8C3A]/30 hover:border-[#8E8C3A]/60'
                           }`}
                         >
-                          <div className="flex justify-between items-center gap-2 mb-2">
-                            <h4 className={`text-sm font-bold font-barlow truncate ${isPast ? 'text-zinc-400' : 'text-white group-hover:text-[#B5B04E] transition-colors'}`}>
-                              {item.title}
-                            </h4>
-                            <span className="text-xs font-mono bg-black/60 border border-[#8E8C3A]/40 text-[#B5B04E] font-bold px-2.5 py-1 rounded-lg shrink-0">
+                          <div className="flex justify-between items-start gap-2 mb-2">
+                            <div className="flex-1 min-w-0 pr-1">
+                              <h4 className={`text-sm font-bold font-barlow truncate ${isPast ? 'text-zinc-400' : 'text-white group-hover:text-[#B5B04E] transition-colors'}`}>
+                                {item.title}
+                              </h4>
+                            </div>
+                            <span className="text-xs font-mono bg-black/50 border border-[#8E8C3A]/30 text-zinc-200 px-2 py-1 rounded-lg shrink-0">
                               {item.time}
                             </span>
                           </div>
 
                           <div className="pt-2.5 mt-2.5 border-t border-[#8E8C3A]/20 flex items-center justify-between">
-                            <span className="text-[10px] font-bold text-emerald-400 bg-emerald-950/60 border border-emerald-800 px-2.5 py-0.5 rounded">
-                              {isPast ? 'Finalizada' : 'Reservado'}
-                            </span>
+                            <div className="flex items-center gap-1.5 text-xs font-barlow">
+                              <span className="text-zinc-400 font-medium">Inscritos:</span>
+                              <div className="flex items-baseline font-mono font-bold">
+                                <span className={`text-base ${isPast ? 'text-zinc-500' : isFull ? 'text-red-400' : 'text-[#B5B04E]'}`}>
+                                  {item.bookedCount || 0}
+                                </span>
+                                <span className="text-xs text-zinc-400 ml-0.5 font-normal">
+                                  /{item.capacity}
+                                </span>
+                              </div>
+                            </div>
 
-                            <ChevronRight className="w-4 h-4 text-zinc-400 group-hover:text-[#B5B04E] transition-colors" />
+                            <div className="flex items-center gap-2">
+                              {isPast && (
+                                <span className="text-[10px] font-bold px-2.5 py-0.5 rounded text-zinc-400 bg-zinc-800/80 border border-zinc-700">
+                                  Finalizada
+                                </span>
+                              )}
+
+                              <span className="text-xs text-zinc-400 group-hover:text-white flex items-center gap-1 font-barlow font-medium">
+                                <span>Ver</span>
+                                <ChevronRight className="w-3.5 h-3.5" />
+                              </span>
+                            </div>
                           </div>
                         </div>
                       );
@@ -511,7 +618,6 @@ const Dashboard: React.FC = () => {
                 </div>
               ) : (
                 classes.map((item) => {
-                  const isBooked = bookedClassIds.includes(item.id);
                   const isFull = (item.bookedCount || 0) >= item.capacity;
                   const isPast = isClassPast(item.date, item.time);
 
@@ -556,12 +662,6 @@ const Dashboard: React.FC = () => {
                             </span>
                           )}
 
-                          {isBooked && !isPast && (
-                            <span className="text-[10px] font-bold text-emerald-400 bg-emerald-950/60 border border-emerald-800 px-2 py-0.5 rounded">
-                              Reservado
-                            </span>
-                          )}
-
                           <span className="text-xs text-zinc-400 group-hover:text-white flex items-center gap-1 font-barlow font-medium">
                             <span>Ver</span>
                             <ChevronRight className="w-3.5 h-3.5" />
@@ -594,68 +694,110 @@ const Dashboard: React.FC = () => {
 
         {/* Pestaña: PERFIL */}
         {activeTab === 'perfil' && (
-          <section className="bg-[#121514] border border-zinc-800/80 rounded-2xl p-5 space-y-4">
-            {/* Header con Avatar, Nombre y Badge */}
-            <div className="flex items-center gap-3.5 pb-4 border-b border-zinc-800/80">
-              <div className="w-11 h-11 rounded-full bg-[#1A1F1B] border border-[#8E8C3A]/40 flex items-center justify-center text-[#B5B04E] font-bebas text-lg shrink-0">
-                {fullName.charAt(0).toUpperCase() || 'U'}
-              </div>
-              <div className="min-w-0">
-                <h3 className="text-base font-bold text-white font-barlow leading-tight">
-                  {fullName}
-                </h3>
-                <div className="flex items-center gap-2 mt-1">
-                  <span
-                    className={`text-[8px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border inline-block ${
-                      isAdmin
-                        ? 'bg-[#3A3A1A] border-[#8E8C3A]/50 text-[#B5B04E]'
-                        : isActive
-                        ? 'bg-emerald-950/60 border-emerald-800/60 text-emerald-400'
-                        : 'bg-red-950/60 border-red-800/60 text-red-400'
-                    }`}
-                  >
-                    {isAdmin ? 'Administrador' : isActive ? 'Activo' : 'Vencido'}
-                  </span>
+          <section className="min-h-[calc(100dvh-11.5rem)] flex flex-col justify-between pb-4 animate-in fade-in duration-200">
+            {/* Bloque Superior: Header + Tarjetas */}
+            <div className="space-y-4">
+              {/* Header con Avatar, Nombre, Badge y Botón Sutil de Edición */}
+              <div className="bg-[#121514] border border-zinc-800/80 rounded-2xl p-4 flex items-center justify-between gap-3 shadow-md">
+                <div className="flex items-center gap-3.5 min-w-0">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#1A1F1B] to-[#121514] border border-[#8E8C3A]/50 flex items-center justify-center text-[#B5B04E] font-bebas text-xl shrink-0 shadow-inner select-none">
+                    {fullName.charAt(0).toUpperCase() || 'U'}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-base font-bold text-white font-barlow leading-tight truncate">
+                        {fullName}
+                      </h3>
+                      {!isAdmin && (
+                        <button
+                          onClick={() => setIsEditProfileOpen(true)}
+                          className="p-1 rounded-lg text-zinc-400 hover:text-[#B5B04E] hover:bg-zinc-800/60 transition-colors"
+                          title="Editar datos de contacto"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                    {isAdmin && (
+                      <div className="mt-1 flex items-center">
+                        <span className="text-[9px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border bg-[#3A3A1A] border-[#8E8C3A]/50 text-[#B5B04E] inline-flex items-center">
+                          Administrador
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
 
-
-            {/* Datos de Contacto Unificados */}
-            <div className="bg-[#0A0C0B] p-4 rounded-xl border border-zinc-800/80 space-y-3 font-barlow">
-              <div>
-                <span className="text-[10px] uppercase tracking-wider text-zinc-400 font-semibold block mb-0.5">
-                  Correo
-                </span>
-                <span className="text-white font-medium text-xs break-all block">
-                  {user?.email}
-                </span>
-              </div>
-
-              <div>
-                <span className="text-[10px] uppercase tracking-wider text-zinc-400 font-semibold block mb-0.5">
-                  Teléfono
-                </span>
-                <span className="text-white font-medium text-xs block">
-                  {phone}
-                </span>
-              </div>
-
+              {/* Tarjeta Unificada de Métricas / Estado (Solo Atletas) */}
               {!isAdmin && (
-                <div className="pt-2.5 border-t border-zinc-800/60">
-                  <span className="text-[10px] uppercase tracking-wider text-zinc-400 font-semibold block mb-0.5">
-                    Vencimiento
-                  </span>
-                  <span className={`font-mono font-bold text-xs block ${isActive ? 'text-zinc-200' : 'text-red-400'}`}>
-                    {membership?.expires_at ? new Date(membership.expires_at).toLocaleDateString() : 'Sin fecha asignada'}
-                  </span>
-                  {!isActive && (
-                    <div className="mt-2.5 pt-2 border-t border-zinc-800/40">
+                <div className="bg-[#121514] border border-zinc-800/80 rounded-2xl p-4 shadow-md grid grid-cols-2 divide-x divide-zinc-800/80">
+                  {/* Columna 1: Clases completadas */}
+                  <div className="pr-4 flex flex-col justify-between">
+                    <span className="text-[10px] uppercase font-bold tracking-wider text-zinc-400 font-barlow">
+                      Clases Completadas
+                    </span>
+                    <div className="mt-2.5 flex items-baseline gap-1.5">
+                      <span className="font-bebas text-3xl text-[#B5B04E] leading-none">
+                        {completedClassesCount}
+                      </span>
+                      <span className="text-[11px] font-semibold text-zinc-400 font-barlow">
+                        {completedClassesCount === 1 ? 'sesión' : 'sesiones'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Columna 2: Vencimiento de Membresía */}
+                  <div className="pl-4 flex flex-col justify-between">
+                    <span className="text-[10px] uppercase font-bold tracking-wider text-zinc-400 font-barlow">
+                      Vencimiento
+                    </span>
+                    <div className="mt-2.5">
+                      <span className={`font-mono text-sm font-bold block leading-none ${isActive ? 'text-zinc-100' : 'text-red-400'}`}>
+                        {membership?.expires_at ? new Date(membership.expires_at).toLocaleDateString('es-CR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'Sin fecha'}
+                      </span>
+                      <span className={`text-[9px] font-bold uppercase tracking-wider block mt-1.5 ${isActive ? 'text-emerald-400' : 'text-red-400'}`}>
+                        {isActive ? 'Activo' : 'Vencido'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Sección: Información de la Cuenta */}
+              <div className="bg-[#121514] border border-zinc-800/80 rounded-2xl p-4 shadow-md space-y-3 font-barlow">
+                <span className="text-[10px] uppercase font-bold tracking-wider text-zinc-400 block pb-1 border-b border-zinc-800/60">
+                  Información de la Cuenta
+                </span>
+
+                <div className="space-y-3 pt-1">
+                  <div>
+                    <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-bold block mb-0.5">
+                      Correo Electrónico
+                    </span>
+                    <span className="text-white font-medium text-xs break-all block">
+                      {user?.email}
+                    </span>
+                  </div>
+
+                  {(!isAdmin || (phone && phone !== 'No registrado')) && (
+                    <div className="pt-2.5 border-t border-zinc-800/40">
+                      <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-bold block mb-0.5">
+                        Teléfono de Contacto
+                      </span>
+                      <span className="text-white font-medium text-xs block font-mono">
+                        {formatPhone(phone)}
+                      </span>
+                    </div>
+                  )}
+
+                  {!isActive && !isAdmin && (
+                    <div className="pt-3 border-t border-zinc-800/60">
                       <a
                         href="https://wa.me/"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 py-1.5 px-3 bg-[#8E8C3A] hover:bg-[#B5B04E] text-black font-bebas text-xs tracking-wider rounded-lg transition-all"
+                        className="w-full py-2.5 px-3 bg-[#8E8C3A] hover:bg-[#B5B04E] text-black font-bebas text-xs tracking-wider uppercase rounded-xl transition-all flex items-center justify-center gap-1.5 active:scale-[0.98]"
                       >
                         <WhatsAppIcon className="w-3.5 h-3.5 shrink-0" />
                         <span>Contactar Recepción por WhatsApp</span>
@@ -663,18 +805,29 @@ const Dashboard: React.FC = () => {
                     </div>
                   )}
                 </div>
-              )}
+              </div>
             </div>
 
-            <button
-              onClick={() => signOut()}
-              className="w-full mt-2 py-3 bg-red-950/20 hover:bg-red-950/35 border border-red-900/40 hover:border-red-500/50 text-red-400 hover:text-red-300 font-bebas text-base tracking-wider uppercase rounded-xl transition-all flex items-center justify-center gap-2"
-            >
-              <LogoutCustomIcon className="w-4 h-4 text-red-400" />
-              <span>Cerrar Sesión</span>
-            </button>
+            {/* Enlace sutil y discreto para Cerrar Sesión (Anclado al fondo útil) */}
+            <div className="pt-6 pb-2 text-center">
+              <button
+                onClick={() => signOut()}
+                className="inline-flex items-center gap-1.5 py-2 px-4 text-zinc-500 hover:text-red-400 text-xs font-semibold font-barlow uppercase tracking-wider rounded-xl hover:bg-red-950/20 transition-all active:scale-95"
+              >
+                <LogoutCustomIcon className="w-3.5 h-3.5" />
+                <span>Cerrar Sesión</span>
+              </button>
+            </div>
           </section>
         )}
+
+        {/* Modal para editar perfil */}
+        <EditProfileModal
+          isOpen={isEditProfileOpen}
+          onClose={() => setIsEditProfileOpen(false)}
+          initialName={fullName}
+          initialPhone={phone}
+        />
       </main>
 
       {/* Navegación Móvil Inferior */}

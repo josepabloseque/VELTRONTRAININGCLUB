@@ -481,7 +481,7 @@ export const AdminAccessView: React.FC<AdminAccessViewProps> = ({ onMembershipUp
 
               {selectedAthlete.phone && selectedAthlete.phone !== 'No registrado' && (
                 <a
-                  href={`https://wa.me/506${selectedAthlete.phone}?text=Hola%20${encodeURIComponent(
+                  href={`https://wa.me/506${selectedAthlete.phone.replace(/\D/g, '').replace(/^506/, '')}?text=Hola%20${encodeURIComponent(
                     selectedAthlete.fullName
                   )},%20te%20saludamos%20de%20Veltron%20Training%20Club%20respecto%20a%20tu%20membres%C3%ADa.`}
                   target="_blank"

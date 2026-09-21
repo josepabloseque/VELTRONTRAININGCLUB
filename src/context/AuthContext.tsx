@@ -12,6 +12,7 @@ interface AuthContextType {
   loading: boolean;
   signOut: () => Promise<void>;
   refreshMembership: () => Promise<void>;
+  updateProfile: (data: { full_name: string; phone: string }) => Promise<{ success: boolean; error?: string }>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -22,6 +23,7 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   signOut: async () => {},
   refreshMembership: async () => {},
+  updateProfile: async () => ({ success: false }),
 });
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -95,6 +97,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const updateProfile = async (data: { full_name: string; phone: string }) => {
+    try {
+      const { data: updated, error } = await supabase.auth.updateUser({
+        data: {
+          full_name: data.full_name,
+          phone: data.phone,
+        },
+      });
+
+      if (error) {
+        return { success: false, error: error.message };
+      }
+
+      if (updated?.user) {
+        setUser(updated.user);
+      }
+      return { success: true };
+    } catch (err: unknown) {
+      return { success: false, error: (err as Error)?.message || 'Error al actualizar perfil' };
+    }
+  };
+
   const signOut = async () => {
     await supabase.auth.signOut();
   };
@@ -109,6 +133,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         loading,
         signOut,
         refreshMembership,
+        updateProfile,
       }}
     >
       {children}
