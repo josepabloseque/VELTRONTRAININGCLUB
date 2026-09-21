@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, CheckCircle2, Calendar, ChevronRight } from 'lucide-react';
 import type { TrainingClass } from '../types/database';
 import { getLocalDateString, getTomorrowDateString, isClassPast } from '../lib/dateUtils';
@@ -54,6 +54,24 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
 
   const todayStr = getLocalDateString();
   const tomorrowStr = getTomorrowDateString();
+
+  useEffect(() => {
+    if (showForm) {
+      const prevScrollY = window.scrollY;
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${prevScrollY}px`;
+      document.body.style.width = '100%';
+      document.body.style.overflow = 'hidden';
+
+      return () => {
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.width = '';
+        document.body.style.overflow = '';
+        window.scrollTo(0, prevScrollY);
+      };
+    }
+  }, [showForm]);
 
   const resetFormFields = () => {
     setTitle('');
@@ -311,8 +329,11 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
                   rows={3}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
+                  onTouchStart={(e) => e.stopPropagation()}
+                  onTouchMove={(e) => e.stopPropagation()}
+                  onWheel={(e) => e.stopPropagation()}
                   placeholder="Ej: Sesión integral enfocada en potencia muscular con barra y conditioning metabólico."
-                  className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2.5 px-3.5 text-base sm:text-sm text-white placeholder-zinc-500 focus:outline-none transition-colors font-barlow resize-none leading-relaxed"
+                  className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2.5 px-3.5 text-base sm:text-sm text-white placeholder-zinc-500 focus:outline-none transition-colors font-barlow resize-none leading-relaxed h-24 overflow-y-auto overscroll-contain touch-pan-y"
                   autoCapitalize="sentences"
                   autoCorrect="on"
                   spellCheck="false"
