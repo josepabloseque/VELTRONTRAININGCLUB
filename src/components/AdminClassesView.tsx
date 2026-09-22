@@ -162,10 +162,10 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
         <div className="flex justify-between items-center">
           <div>
             <h2 className="font-bebas text-2xl tracking-wide uppercase text-white leading-none">
-              Configuración de Clases
+              Programación de Clases
             </h2>
             <p className="text-xs text-zinc-400 font-barlow mt-0.5">
-              Administra los horarios y programación
+              Administra y agrega clases
             </p>
           </div>
 

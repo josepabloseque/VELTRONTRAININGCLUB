@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Lock, Mail, User, Phone, AlertCircle, Loader2, CheckCircle2 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { VeltronLogo } from '../components/VeltronLogo';
+import { TermsModal } from '../components/TermsModal';
 
 export const Register: React.FC = () => {
   const navigate = useNavigate();
@@ -14,6 +15,7 @@ export const Register: React.FC = () => {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
+  const [isTermsOpen, setIsTermsOpen] = useState(false);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -210,10 +212,22 @@ export const Register: React.FC = () => {
                 </div>
               </div>
 
+              <p className="text-[11px] text-zinc-400 text-center pt-1 font-barlow leading-relaxed">
+                Al registrarte aceptas los{' '}
+                <button
+                  type="button"
+                  onClick={() => setIsTermsOpen(true)}
+                  className="underline text-zinc-300 hover:text-white transition-colors"
+                >
+                  Términos y Condiciones
+                </button>{' '}
+                de Veltron Training Club.
+              </p>
+
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full mt-3 py-3.5 px-4 bg-[#8E8C3A] hover:bg-[#B5B04E] text-black font-black text-xs uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-50 font-athletic"
+                className="w-full mt-2 py-3.5 px-4 bg-[#8E8C3A] hover:bg-[#B5B04E] text-black font-black text-xs uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-50 font-athletic"
               >
                 {submitting ? (
                   <>
@@ -228,6 +242,12 @@ export const Register: React.FC = () => {
           </div>
         )}
       </main>
+
+      {/* Modal de Términos y Condiciones */}
+      <TermsModal
+        isOpen={isTermsOpen}
+        onClose={() => setIsTermsOpen(false)}
+      />
 
         {/* Footer with link to Login */}
         <footer className="text-center py-2">

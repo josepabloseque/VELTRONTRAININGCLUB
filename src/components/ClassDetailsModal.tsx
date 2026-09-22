@@ -92,13 +92,6 @@ export const ClassDetailsModal: React.FC<ClassDetailsModalProps> = ({
               <span className="text-zinc-400 font-normal">/ {selectedClass.capacity}</span>
             </div>
           </div>
-
-          {/* Badge de Estado: Finalizada */}
-          {isPast && (
-            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 bg-zinc-800/80 border border-zinc-700 px-3 py-2 rounded-xl">
-              Finalizada
-            </span>
-          )}
         </div>
 
         {/* Programación del Entreno / Descripción */}

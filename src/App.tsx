@@ -4,11 +4,13 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { supabase } from './lib/supabaseClient';
 import { Gatekeeper } from './components/Gatekeeper';
 import { Welcome } from './pages/Welcome';
+import { Terms } from './pages/Terms';
 import { VeltronLogo } from './components/VeltronLogo';
 import { AdminClassModal } from './components/AdminClassModal';
 import { AdminMembershipsModal } from './components/AdminMembershipsModal';
 import { AdminAccessView } from './components/AdminAccessView';
 import { AdminClassesView } from './components/AdminClassesView';
+import { AdminHomeView } from './components/AdminHomeView';
 import { ClassDetailsModal } from './components/ClassDetailsModal';
 import { EditProfileModal } from './components/EditProfileModal';
 import type { TrainingClass } from './types/database';
@@ -617,8 +619,16 @@ const Dashboard: React.FC = () => {
           </section>
         )}
 
-        {/* Pestaña: CLASES (Atletas) o INICIO (Admin) */}
-        {((!isAdmin && activeTab === 'clases') || (isAdmin && activeTab === 'inicio')) && (
+        {/* Pestaña: INICIO (Exclusivo Administrador) */}
+        {isAdmin && activeTab === 'inicio' && (
+          <AdminHomeView
+            classes={classes}
+            onSelectClass={setSelectedClass}
+          />
+        )}
+
+        {/* Pestaña: CLASES (Exclusivo Atletas / Usuarios) */}
+        {!isAdmin && activeTab === 'clases' && (
           <section className="space-y-3">
             <div className="flex justify-between items-center">
               <h2 className="font-bebas text-2xl tracking-wide uppercase text-white leading-none">
@@ -736,13 +746,6 @@ const Dashboard: React.FC = () => {
                       </button>
                     )}
                   </div>
-                  {isAdmin && (
-                    <div className="mt-1 flex items-center">
-                      <span className="text-[9px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border bg-[#3A3A1A] border-[#8E8C3A]/50 text-[#B5B04E] inline-flex items-center">
-                        Administrador
-                      </span>
-                    </div>
-                  )}
                 </div>
               </div>
             </div>
@@ -785,7 +788,7 @@ const Dashboard: React.FC = () => {
             {/* Sección: Información de la Cuenta */}
             <div className="bg-[#121514] border border-zinc-800/80 rounded-2xl p-4 shadow-md space-y-3 font-barlow">
               <span className="text-[10px] uppercase font-bold tracking-wider text-zinc-400 block pb-1 border-b border-zinc-800/60">
-                Información de la Cuenta
+                {isAdmin ? 'Cuenta Administrador' : 'Información de la Cuenta'}
               </span>
 
               <div className="space-y-3 pt-1">
@@ -926,6 +929,10 @@ export default function App() {
       <AuthProvider>
         <Routes>
           <Route path="/welcome" element={<Welcome />} />
+          <Route path="/terms" element={<Terms />} />
+          <Route path="/terminos" element={<Terms />} />
+          <Route path="/privacy" element={<Terms />} />
+          <Route path="/privacidad" element={<Terms />} />
           <Route element={<Gatekeeper />}>
             <Route path="/" element={<Dashboard />} />
           </Route>

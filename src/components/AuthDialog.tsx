@@ -2,6 +2,7 @@ import React, { useState, useId } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, X, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
+import { TermsModal } from './TermsModal';
 
 interface AuthDialogProps {
   isOpen: boolean;
@@ -17,6 +18,7 @@ export const AuthDialog: React.FC<AuthDialogProps> = ({
   const navigate = useNavigate();
   const [mode, setMode] = useState<'signup' | 'login'>(initialMode);
   const [showPassword, setShowPassword] = useState(false);
+  const [isTermsOpen, setIsTermsOpen] = useState(false);
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
@@ -346,14 +348,24 @@ export const AuthDialog: React.FC<AuthDialogProps> = ({
 
             <p className="text-xs text-zinc-400 text-center mt-3 font-barlow leading-relaxed">
               Al registrarte aceptas los{' '}
-              <a href="#" className="underline hover:text-zinc-200">
+              <button
+                type="button"
+                onClick={() => setIsTermsOpen(true)}
+                className="underline text-zinc-300 hover:text-white transition-colors"
+              >
                 Términos y Condiciones
-              </a>{' '}
+              </button>{' '}
               de Veltron Training Club.
             </p>
           </div>
         )}
       </div>
+
+      {/* Modal de Términos y Condiciones */}
+      <TermsModal
+        isOpen={isTermsOpen}
+        onClose={() => setIsTermsOpen(false)}
+      />
     </div>
   );
 };
