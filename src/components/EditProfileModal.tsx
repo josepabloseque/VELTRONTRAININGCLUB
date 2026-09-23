@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { X, User, Phone, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { DateInput } from './ui/DateInput';
 
 interface EditProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialName: string;
   initialPhone: string;
+  initialBirthDate?: string;
 }
 
 export const EditProfileModal: React.FC<EditProfileModalProps> = ({
@@ -14,10 +16,12 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
   onClose,
   initialName,
   initialPhone,
+  initialBirthDate = '',
 }) => {
   const { updateProfile } = useAuth();
   const [name, setName] = useState(initialName);
   const [phone, setPhone] = useState(initialPhone === 'No registrado' ? '' : initialPhone);
+  const [birthDate, setBirthDate] = useState(initialBirthDate);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -27,6 +31,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
       document.body.style.overflow = 'hidden';
       setName(initialName);
       setPhone(initialPhone === 'No registrado' ? '' : initialPhone);
+      setBirthDate(initialBirthDate);
       setError(null);
       setSuccess(false);
     } else {
@@ -35,7 +40,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
     return () => {
       document.body.style.overflow = '';
     };
-  }, [isOpen, initialName, initialPhone]);
+  }, [isOpen, initialName, initialPhone, initialBirthDate]);
 
   if (!isOpen) return null;
 
@@ -62,6 +67,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
       const res = await updateProfile({
         full_name: trimmedName,
         phone: sanitizedPhone,
+        birth_date: birthDate,
       });
 
       if (!res.success) {
@@ -92,7 +98,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
               Editar Datos
             </h3>
             <p className="text-[11px] text-zinc-400 font-barlow">
-              Actualiza tu nombre y teléfono de contacto
+              Actualiza tu información de contacto y nacimiento
             </p>
           </div>
           <button
@@ -152,9 +158,17 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                 className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2.5 pl-9 pr-3 text-xs text-white placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-[#8E8C3A] transition-all"
               />
             </div>
-            <p className="text-[10px] text-zinc-500 mt-1">
-              Se utilizará para contactarte o enviarte avisos de tu membresía.
-            </p>
+          </div>
+
+          <div>
+            <label className="block text-[10px] uppercase tracking-wider text-zinc-300 font-bold mb-1">
+              Fecha de Nacimiento
+            </label>
+            <DateInput
+              value={birthDate}
+              onChange={(iso) => setBirthDate(iso)}
+              placeholder="DD/MM/AAAA"
+            />
           </div>
 
           <div className="pt-2 flex gap-2">

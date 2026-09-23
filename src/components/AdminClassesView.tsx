@@ -48,7 +48,7 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
   const [hour, setHour] = useState('6');
   const [minute, setMinute] = useState('00');
   const [period, setPeriod] = useState<'AM' | 'PM'>('AM');
-  const [capacity, setCapacity] = useState<number | string>(16);
+  const [capacity, setCapacity] = useState<number | string>(12);
   const [description, setDescription] = useState('');
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
@@ -72,7 +72,7 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
     setHour('6');
     setMinute('00');
     setPeriod('AM');
-    setCapacity(16);
+    setCapacity(12);
     setDescription('');
     setEditingClass(null);
   };
@@ -90,8 +90,8 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
     setHour(parsed.hour);
     setMinute(parsed.minute);
     setPeriod(parsed.period);
-    setCapacity(cls.capacity);
-    setDescription(cls.workoutDescription);
+    setCapacity(cls.capacity || 12);
+    setDescription(cls.workoutDescription || '');
     setShowForm(true);
   };
 
@@ -117,8 +117,8 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
         title: title.trim(),
         date: selectedDate,
         time: formattedTime,
-        capacity: Number(capacity) || 16,
-        workoutDescription: description.trim() || 'Entrenamiento de alto rendimiento programado por el staff.',
+        capacity: Number(capacity) || 12,
+        workoutDescription: description.trim(),
         exercises: editingClass.exercises || [],
       };
 
@@ -132,9 +132,9 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
         coach: 'Coach Veltron',
         date: selectedDate,
         time: formattedTime,
-        capacity: Number(capacity) || 16,
+        capacity: Number(capacity) || 12,
         bookedCount: 0,
-        workoutDescription: description.trim() || 'Entrenamiento de alto rendimiento programado por el staff.',
+        workoutDescription: description.trim(),
         exercises: [],
       };
 
@@ -300,7 +300,7 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
                   required
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Ej: Tactical WOD • Strength & Conditioning"
+                  placeholder=""
                   className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2.5 px-3.5 text-base sm:text-sm text-white placeholder-zinc-500 focus:outline-none transition-colors font-barlow"
                 />
               </div>
@@ -425,7 +425,7 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
                     }}
                     onBlur={() => {
                       if (capacity === '' || Number(capacity) < 1) {
-                        setCapacity(16);
+                        setCapacity(12);
                       }
                     }}
                     className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2 px-3 text-center text-base sm:text-xs font-mono text-white focus:outline-none transition-colors"
@@ -442,7 +442,7 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
                   rows={3}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Ej: Sesión integral enfocada en potencia muscular con barra y conditioning metabólico."
+                  placeholder=""
                   className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2.5 px-3.5 text-base sm:text-sm text-white placeholder-zinc-500 focus:outline-none transition-colors font-barlow resize-none leading-relaxed"
                   autoCapitalize="sentences"
                   autoCorrect="on"

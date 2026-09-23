@@ -154,7 +154,7 @@ const Dashboard: React.FC = () => {
           coach: item.coach || 'Coach',
           date: item.date || todayStr,
           time: item.time,
-          capacity: Number(item.capacity) || 16,
+          capacity: Number(item.capacity) || 12,
           bookedCount: Number(item.booked_count) || 0,
           workoutDescription: item.workout_description || '',
           exercises: Array.isArray(item.exercises) ? item.exercises : [],
@@ -259,6 +259,7 @@ const Dashboard: React.FC = () => {
 
   const fullName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Usuario';
   const phone = user?.user_metadata?.phone || 'No registrado';
+  const birthDate = user?.user_metadata?.birth_date || '';
 
   const formatPhone = (rawPhone: string) => {
     if (!rawPhone || rawPhone === 'No registrado') return 'No registrado';
@@ -270,6 +271,29 @@ const Dashboard: React.FC = () => {
       return `+506 ${clean.slice(3, 7)}-${clean.slice(7)}`;
     }
     return rawPhone;
+  };
+
+  const formatBirthDate = (rawDate: string) => {
+    if (!rawDate) return 'No registrada';
+    try {
+      const parts = rawDate.split('-');
+      if (parts.length < 3) return rawDate;
+      const [y, m, d] = parts.map(Number);
+      if (!y || !m || !d) return rawDate;
+      
+      const date = new Date(y, m - 1, d);
+      const formatted = date.toLocaleDateString('es-CR', { day: 'numeric', month: 'long', year: 'numeric' });
+
+      const today = new Date();
+      let age = today.getFullYear() - y;
+      const mDiff = today.getMonth() - (m - 1);
+      if (mDiff < 0 || (mDiff === 0 && today.getDate() < d)) {
+        age--;
+      }
+      return `${formatted} (${age} años)`;
+    } catch {
+      return rawDate;
+    }
   };
 
   const handleSaveClass = async (newClass: TrainingClass) => {
@@ -624,6 +648,7 @@ const Dashboard: React.FC = () => {
           <AdminHomeView
             classes={classes}
             onSelectClass={setSelectedClass}
+            onNavigateToClasses={() => setActiveTab('clases')}
           />
         )}
 
@@ -812,6 +837,17 @@ const Dashboard: React.FC = () => {
                   </div>
                 )}
 
+                {!isAdmin && (
+                  <div className="pt-2.5 border-t border-zinc-800/40">
+                    <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-bold block mb-0.5">
+                      Fecha de Nacimiento
+                    </span>
+                    <span className="text-white font-medium text-xs block">
+                      {formatBirthDate(birthDate)}
+                    </span>
+                  </div>
+                )}
+
                 {!isActive && !isAdmin && (
                   <div className="pt-3 border-t border-zinc-800/60">
                     <a
@@ -847,6 +883,7 @@ const Dashboard: React.FC = () => {
           onClose={() => setIsEditProfileOpen(false)}
           initialName={fullName}
           initialPhone={phone}
+          initialBirthDate={birthDate}
         />
       </main>
 

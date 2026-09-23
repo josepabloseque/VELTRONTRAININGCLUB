@@ -12,7 +12,7 @@ interface AuthContextType {
   loading: boolean;
   signOut: () => Promise<void>;
   refreshMembership: () => Promise<void>;
-  updateProfile: (data: { full_name: string; phone: string }) => Promise<{ success: boolean; error?: string }>;
+  updateProfile: (data: { full_name: string; phone: string; birth_date?: string }) => Promise<{ success: boolean; error?: string }>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -97,13 +97,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const updateProfile = async (data: { full_name: string; phone: string }) => {
+  const updateProfile = async (data: { full_name: string; phone: string; birth_date?: string }) => {
     try {
+      const payload: Record<string, any> = {
+        full_name: data.full_name,
+        phone: data.phone,
+      };
+      if (data.birth_date !== undefined) {
+        payload.birth_date = data.birth_date;
+      }
+
       const { data: updated, error } = await supabase.auth.updateUser({
-        data: {
-          full_name: data.full_name,
-          phone: data.phone,
-        },
+        data: payload,
       });
 
       if (error) {

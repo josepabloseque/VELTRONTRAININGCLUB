@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, X, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { TermsModal } from './TermsModal';
+import { DateInput } from './ui/DateInput';
 
 interface AuthDialogProps {
   isOpen: boolean;
@@ -21,6 +22,7 @@ export const AuthDialog: React.FC<AuthDialogProps> = ({
   const [isTermsOpen, setIsTermsOpen] = useState(false);
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
+  const [birthDate, setBirthDate] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -35,6 +37,7 @@ export const AuthDialog: React.FC<AuthDialogProps> = ({
     setSignupSuccess(false);
     setFullName('');
     setPhone('');
+    setBirthDate('');
     setEmail('');
     setPassword('');
   }, [initialMode, isOpen]);
@@ -80,6 +83,7 @@ export const AuthDialog: React.FC<AuthDialogProps> = ({
             data: {
               full_name: fullName,
               phone: phone,
+              birth_date: birthDate,
             },
           },
         });
@@ -220,22 +224,41 @@ export const AuthDialog: React.FC<AuthDialogProps> = ({
             </div>
 
             {mode === 'signup' && (
-              <div>
-                <label 
-                  htmlFor={`${id}-phone`}
-                  className="block text-[11px] uppercase tracking-wider text-zinc-300 font-semibold mb-1.5 font-barlow"
-                >
-                  Número Telefónico
-                </label>
-                <input
-                  id={`${id}-phone`}
-                  type="tel"
-                  inputMode="tel"
-                  required
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2.5 px-3.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#8E8C3A] transition-all font-barlow font-normal"
-                />
+              <div className="grid grid-cols-2 gap-2.5">
+                <div>
+                  <label 
+                    htmlFor={`${id}-phone`}
+                    className="block text-[11px] uppercase tracking-wider text-zinc-300 font-semibold mb-1.5 font-barlow truncate"
+                  >
+                    Teléfono
+                  </label>
+                  <input
+                    id={`${id}-phone`}
+                    type="tel"
+                    inputMode="tel"
+                    required
+                    placeholder="8888-8888"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2.5 px-3 text-xs sm:text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#8E8C3A] transition-all font-barlow font-normal"
+                  />
+                </div>
+
+                <div>
+                  <label 
+                    htmlFor={`${id}-birthdate`}
+                    className="block text-[11px] uppercase tracking-wider text-zinc-300 font-semibold mb-1.5 font-barlow truncate"
+                  >
+                    Nacimiento
+                  </label>
+                  <DateInput
+                    id={`${id}-birthdate`}
+                    required
+                    value={birthDate}
+                    onChange={(iso) => setBirthDate(iso)}
+                    placeholder="DD/MM/AAAA"
+                  />
+                </div>
               </div>
             )}
 

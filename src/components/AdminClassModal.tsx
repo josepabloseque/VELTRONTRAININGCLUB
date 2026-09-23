@@ -16,7 +16,7 @@ export const AdminClassModal: React.FC<AdminClassModalProps> = ({
   const [title, setTitle] = useState('');
   const [coach, setCoach] = useState('');
   const [time, setTime] = useState('06:00 AM');
-  const [capacity, setCapacity] = useState<number | string>(16);
+  const [capacity, setCapacity] = useState<number | string>(12);
   const [description, setDescription] = useState('');
   const [exerciseInput, setExerciseInput] = useState('');
   const [exercises, setExercises] = useState<string[]>([]);
@@ -44,7 +44,7 @@ export const AdminClassModal: React.FC<AdminClassModalProps> = ({
       coach: coach.trim(),
       date: new Date().toISOString().split('T')[0],
       time,
-      capacity: Number(capacity) || 16,
+      capacity: Number(capacity) || 12,
       bookedCount: 0,
       workoutDescription: description.trim(),
       exercises: exercises,
@@ -105,7 +105,7 @@ export const AdminClassModal: React.FC<AdminClassModalProps> = ({
               required
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Ej: Tactical WOD • Strength & Conditioning"
+              placeholder=""
               className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2.5 px-3.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#8E8C3A] transition-all font-barlow"
             />
           </div>
@@ -121,7 +121,7 @@ export const AdminClassModal: React.FC<AdminClassModalProps> = ({
                 required
                 value={coach}
                 onChange={(e) => setCoach(e.target.value)}
-                placeholder="Ej: Coach Carlos"
+                placeholder=""
                 className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2.5 px-3.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#8E8C3A] transition-all font-barlow"
               />
             </div>
@@ -181,7 +181,7 @@ export const AdminClassModal: React.FC<AdminClassModalProps> = ({
                 }}
                 onBlur={() => {
                   if (capacity === '' || Number(capacity) < 1) {
-                    setCapacity(16);
+                    setCapacity(12);
                   }
                 }}
                 className="w-20 bg-[#0A0C0B] border border-zinc-800 rounded-xl py-2 px-3 text-center text-sm font-mono text-white focus:outline-none focus:border-[#8E8C3A]"
@@ -198,7 +198,7 @@ export const AdminClassModal: React.FC<AdminClassModalProps> = ({
               rows={3}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Ej: Sesión orientada al desarrollo de potencia en tren inferior y capacidad aeróbica sostenida."
+              placeholder=""
               className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2.5 px-3.5 text-base sm:text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#8E8C3A] transition-all font-barlow resize-none leading-relaxed"
               autoCapitalize="sentences"
               autoCorrect="on"

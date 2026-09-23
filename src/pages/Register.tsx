@@ -4,11 +4,13 @@ import { ArrowLeft, Lock, Mail, User, Phone, AlertCircle, Loader2, CheckCircle2 
 import { supabase } from '../lib/supabaseClient';
 import { VeltronLogo } from '../components/VeltronLogo';
 import { TermsModal } from '../components/TermsModal';
+import { DateInput } from '../components/ui/DateInput';
 
 export const Register: React.FC = () => {
   const navigate = useNavigate();
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
+  const [birthDate, setBirthDate] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -41,6 +43,7 @@ export const Register: React.FC = () => {
           data: {
             full_name: fullName,
             phone: phone,
+            birth_date: birthDate,
           },
         },
       });
@@ -142,19 +145,33 @@ export const Register: React.FC = () => {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-[11px] uppercase tracking-wider text-zinc-300 font-bold mb-1">
-                  Teléfono / WhatsApp
-                </label>
-                <div className="relative">
-                  <Phone className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="tel"
+              <div className="grid grid-cols-2 gap-2.5">
+                <div>
+                  <label className="block text-[11px] uppercase tracking-wider text-zinc-300 font-bold mb-1 truncate">
+                    Teléfono
+                  </label>
+                  <div className="relative">
+                    <Phone className="w-4 h-4 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="tel"
+                      required
+                      placeholder="8888-8888"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2.5 pl-9 pr-2 text-xs sm:text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-[#8E8C3A] transition-all"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] uppercase tracking-wider text-zinc-300 font-bold mb-1 truncate">
+                    Nacimiento
+                  </label>
+                  <DateInput
                     required
-                    placeholder="+506 8888 8888"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2.5 pl-10 pr-3 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-[#8E8C3A] transition-all"
+                    value={birthDate}
+                    onChange={(iso) => setBirthDate(iso)}
+                    placeholder="DD/MM/AAAA"
                   />
                 </div>
               </div>
