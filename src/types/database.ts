@@ -16,8 +16,6 @@ export interface TrainingClass {
   time: string; // HH:MM AM/PM
   capacity: number;
   bookedCount: number;
-  workoutDescription: string;
-  exercises: string[];
 }
 
 export interface ClassBooking {

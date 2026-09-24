@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, CheckCircle2, Calendar, ChevronRight, X } from 'lucide-react';
+import { Plus, Trash2, CheckCircle2, ChevronRight, X } from 'lucide-react';
+import { Calendar } from './ui/Calendar';
 import type { TrainingClass } from '../types/database';
-import { getLocalDateString, getTomorrowDateString, isClassPast } from '../lib/dateUtils';
+import { getLocalDateString, isClassPast } from '../lib/dateUtils';
 
 interface AdminClassesViewProps {
   classes: TrainingClass[];
@@ -49,11 +50,20 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
   const [minute, setMinute] = useState('00');
   const [period, setPeriod] = useState<'AM' | 'PM'>('AM');
   const [capacity, setCapacity] = useState<number | string>(12);
-  const [description, setDescription] = useState('');
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   const todayStr = getLocalDateString();
-  const tomorrowStr = getTomorrowDateString();
+
+  const formatDisplayDate = (dateStr: string) => {
+    if (!dateStr) return '';
+    const [y, m, d] = dateStr.split('-').map(Number);
+    const dateObj = new Date(y, m - 1, d);
+    return dateObj.toLocaleDateString('es-ES', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+    });
+  };
 
   useEffect(() => {
     if (showForm) {
@@ -73,7 +83,6 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
     setMinute('00');
     setPeriod('AM');
     setCapacity(12);
-    setDescription('');
     setEditingClass(null);
   };
 
@@ -91,7 +100,6 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
     setMinute(parsed.minute);
     setPeriod(parsed.period);
     setCapacity(cls.capacity || 12);
-    setDescription(cls.workoutDescription || '');
     setShowForm(true);
   };
 
@@ -118,8 +126,6 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
         date: selectedDate,
         time: formattedTime,
         capacity: Number(capacity) || 12,
-        workoutDescription: description.trim(),
-        exercises: editingClass.exercises || [],
       };
 
       onUpdateClass(updated);
@@ -134,12 +140,10 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
         time: formattedTime,
         capacity: Number(capacity) || 12,
         bookedCount: 0,
-        workoutDescription: description.trim(),
-        exercises: [],
       };
 
       onAddClass(newClass);
-      setSuccessMsg(`Clase "${title}" programada para el ${selectedDate === todayStr ? 'día de hoy' : 'día de mañana'} exitosamente`);
+      setSuccessMsg(`Clase "${title}" programada para el ${formatDisplayDate(selectedDate)} exitosamente`);
     }
 
     setTimeout(() => setSuccessMsg(null), 3500);
@@ -196,32 +200,32 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
                   onClick={() => handleStartEdit(item)}
                   className={`border rounded-2xl p-4 transition-all group shadow-sm backdrop-blur-sm cursor-pointer active:scale-[0.99] ${
                     isCurrentlyEditing
-                      ? 'bg-[#8E8C3A]/20 border-[#B5B04E]'
+                      ? 'bg-zinc-900 border-[#8E8C3A]'
                       : isPast
-                      ? 'bg-zinc-900/40 border-zinc-800/60 opacity-80'
-                      : 'bg-[#8E8C3A]/[0.08] hover:bg-[#8E8C3A]/[0.13] border-[#8E8C3A]/30 hover:border-[#8E8C3A]/60'
+                      ? 'bg-zinc-900/30 border-zinc-800/60 opacity-60'
+                      : 'bg-[#121514] hover:bg-zinc-900/90 border-zinc-800 hover:border-zinc-700'
                   }`}
                 >
                   <div className="flex justify-between items-start gap-2 mb-2">
                     <div className="flex-1 min-w-0 pr-1">
-                      <h3 className={`text-sm font-bold font-barlow truncate ${isPast ? 'text-zinc-400' : 'text-white group-hover:text-[#B5B04E] transition-colors'}`}>
+                      <h3 className={`text-sm font-bold font-barlow truncate ${isPast ? 'text-zinc-500' : 'text-white group-hover:text-[#B5B04E] transition-colors'}`}>
                         {item.title}
                       </h3>
                     </div>
 
-                    <span className="text-xs font-mono bg-black/50 border border-[#8E8C3A]/30 text-zinc-200 px-2 py-1 rounded-lg shrink-0">
+                    <span className="text-xs font-mono bg-[#0A0C0B] border border-zinc-800 text-zinc-300 px-2.5 py-1 rounded-lg shrink-0">
                       {item.time}
                     </span>
                   </div>
 
-                  <div className="pt-2.5 mt-2.5 border-t border-[#8E8C3A]/20 flex items-center justify-between">
+                  <div className="pt-2.5 mt-2.5 border-t border-zinc-800/80 flex items-center justify-between">
                     <div className="flex items-center gap-1.5 text-xs font-barlow">
-                      <span className="text-zinc-400 font-medium">Inscritos:</span>
+                      <span className="text-zinc-500 font-medium">Inscritos:</span>
                       <div className="flex items-baseline font-mono font-bold">
                         <span className={`text-base ${isPast ? 'text-zinc-500' : isFull ? 'text-red-400' : 'text-[#B5B04E]'}`}>
                           {item.bookedCount || 0}
                         </span>
-                        <span className="text-xs text-zinc-400 ml-0.5 font-normal">
+                        <span className="text-xs text-zinc-500 ml-0.5 font-normal">
                           /{item.capacity}
                         </span>
                       </div>
@@ -305,39 +309,16 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
                 />
               </div>
 
-              {/* Selector de Fecha: HOY vs MAÑANA */}
+              {/* Selector de Fecha: Calendario */}
               <div className="space-y-1.5">
-                <label className="block text-[11px] uppercase tracking-wider text-zinc-300 font-semibold font-barlow flex justify-between items-center">
-                  <span>Día de la Clase</span>
-                  <span className="text-zinc-500 font-mono text-[10px]">{selectedDate}</span>
+                <label className="block text-[11px] uppercase tracking-wider text-zinc-300 font-semibold font-barlow">
+                  Día de la Clase
                 </label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedDate(todayStr)}
-                    className={`py-2 px-3 rounded-xl text-xs font-barlow font-bold border transition-all flex items-center justify-center gap-1.5 ${
-                      selectedDate === todayStr
-                        ? 'bg-[#8E8C3A]/20 border-[#8E8C3A] text-[#B5B04E] shadow-[0_0_10px_rgba(142,140,58,0.2)]'
-                        : 'bg-[#0A0C0B] border-zinc-800 text-zinc-400 hover:text-white'
-                    }`}
-                  >
-                    <Calendar className="w-3.5 h-3.5" />
-                    <span>HOY</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setSelectedDate(tomorrowStr)}
-                    className={`py-2 px-3 rounded-xl text-xs font-barlow font-bold border transition-all flex items-center justify-center gap-1.5 ${
-                      selectedDate === tomorrowStr
-                        ? 'bg-[#8E8C3A]/20 border-[#8E8C3A] text-[#B5B04E] shadow-[0_0_10px_rgba(142,140,58,0.2)]'
-                        : 'bg-[#0A0C0B] border-zinc-800 text-zinc-400 hover:text-white'
-                    }`}
-                  >
-                    <Calendar className="w-3.5 h-3.5" />
-                    <span>MAÑANA</span>
-                  </button>
-                </div>
+                <Calendar
+                  selected={selectedDate}
+                  onSelect={(d) => setSelectedDate(d)}
+                  minDate={todayStr}
+                />
               </div>
 
               {/* Horario Selector Dividido y Cupos */}
@@ -431,23 +412,6 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
                     className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2 px-3 text-center text-base sm:text-xs font-mono text-white focus:outline-none transition-colors"
                   />
                 </div>
-              </div>
-
-              {/* Enfoque / Descripción del WOD */}
-              <div>
-                <label className="block text-[11px] uppercase tracking-wider text-zinc-300 font-semibold mb-1.5 font-barlow">
-                  Enfoque del WOD / Descripción
-                </label>
-                <textarea
-                  rows={3}
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder=""
-                  className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2.5 px-3.5 text-base sm:text-sm text-white placeholder-zinc-500 focus:outline-none transition-colors font-barlow resize-none leading-relaxed"
-                  autoCapitalize="sentences"
-                  autoCorrect="on"
-                  spellCheck="false"
-                />
               </div>
 
               {/* Botones de acción del formulario */}

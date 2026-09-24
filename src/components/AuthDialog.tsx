@@ -4,6 +4,7 @@ import { Eye, EyeOff, X, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react
 import { supabase } from '../lib/supabaseClient';
 import { TermsModal } from './TermsModal';
 import { DateInput } from './ui/DateInput';
+import { GoogleLoginButton } from './GoogleLoginButton';
 
 interface AuthDialogProps {
   isOpen: boolean;
@@ -17,7 +18,7 @@ export const AuthDialog: React.FC<AuthDialogProps> = ({
   initialMode = 'login',
 }) => {
   const navigate = useNavigate();
-  const [mode, setMode] = useState<'signup' | 'login'>(initialMode);
+  const [mode, setMode] = useState<'signup' | 'login' | 'forgot_password'>(initialMode);
   const [showPassword, setShowPassword] = useState(false);
   const [isTermsOpen, setIsTermsOpen] = useState(false);
   const [fullName, setFullName] = useState('');
@@ -28,6 +29,7 @@ export const AuthDialog: React.FC<AuthDialogProps> = ({
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [signupSuccess, setSignupSuccess] = useState(false);
+  const [recoverySent, setRecoverySent] = useState(false);
   const id = useId();
 
   // Reset state when opening or mode changes
@@ -35,6 +37,7 @@ export const AuthDialog: React.FC<AuthDialogProps> = ({
     setMode(initialMode);
     setErrorMsg(null);
     setSignupSuccess(false);
+    setRecoverySent(false);
     setFullName('');
     setPhone('');
     setBirthDate('');
@@ -45,6 +48,7 @@ export const AuthDialog: React.FC<AuthDialogProps> = ({
   const toggleMode = () => {
     setErrorMsg(null);
     setSignupSuccess(false);
+    setRecoverySent(false);
     setMode(mode === 'signup' ? 'login' : 'signup');
   };
 
@@ -56,7 +60,17 @@ export const AuthDialog: React.FC<AuthDialogProps> = ({
     setSubmitting(true);
 
     try {
-      if (mode === 'login') {
+      if (mode === 'forgot_password') {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/reset-password`,
+        });
+
+        if (error) {
+          setErrorMsg(error.message);
+        } else {
+          setRecoverySent(true);
+        }
+      } else if (mode === 'login') {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) {
           setErrorMsg(
@@ -106,19 +120,6 @@ export const AuthDialog: React.FC<AuthDialogProps> = ({
     }
   };
 
-  const handleGoogleAuth = async () => {
-    try {
-      await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: window.location.origin,
-        },
-      });
-    } catch (err: unknown) {
-      setErrorMsg((err as Error)?.message || 'Error al conectar con Google');
-    }
-  };
-
   if (!isOpen) return null;
 
   return (
@@ -150,32 +151,66 @@ export const AuthDialog: React.FC<AuthDialogProps> = ({
           <X className="w-4 h-4" />
         </button>
 
-        {/* Dialog Header */}
-        <div className="mb-5 text-center">
-          <h2 className="font-bebas text-2xl sm:text-3xl tracking-wide uppercase text-white leading-none">
-            {mode === 'signup' ? 'Crear Cuenta' : 'Iniciar Sesión'}
-          </h2>
-        </div>
+        {/* Dialog Header (solo visible si no hay mensaje de éxito/enviado) */}
+        {!signupSuccess && !recoverySent && (
+          <div className="mb-5 text-center">
+            <h2 className="font-bebas text-2xl sm:text-3xl tracking-wide uppercase text-white leading-none">
+              {mode === 'signup' 
+                ? 'Crear Cuenta' 
+                : mode === 'forgot_password' 
+                ? 'Recuperar Contraseña' 
+                : 'Iniciar Sesión'}
+            </h2>
+            {mode === 'forgot_password' && (
+              <p className="text-xs text-zinc-300 mt-2 font-barlow leading-relaxed px-2">
+                Ingresa tu correo registrado y te enviaremos un enlace seguro para restablecer tu contraseña.
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Success message on signup */}
         {signupSuccess ? (
-          <div className="text-center py-5 space-y-3">
+          <div className="text-center py-4 space-y-3">
             <div className="w-12 h-12 rounded-xl bg-[#1A1F1B] border border-emerald-500/50 flex items-center justify-center mx-auto text-emerald-400">
               <CheckCircle2 className="w-6 h-6" />
             </div>
             <h3 className="font-bebas text-2xl tracking-wide text-white">¡Registro Exitoso!</h3>
-            <p className="text-xs text-zinc-300 font-barlow leading-relaxed">
+            <p className="text-xs text-zinc-300 font-barlow leading-relaxed max-w-xs mx-auto">
               Hemos registrado tu cuenta. Revisa tu correo <span className="text-white font-semibold">{email}</span> si requiere confirmación.
             </p>
-            <button
-              onClick={() => {
-                setSignupSuccess(false);
-                setMode('login');
-              }}
-              className="w-full py-3.5 bg-[#8E8C3A] hover:bg-[#B5B04E] text-black font-bebas text-lg tracking-wider rounded-xl transition-all shadow-[0_0_15px_rgba(142,140,58,0.25)]"
-            >
-              Ir a Iniciar Sesión
-            </button>
+            <div className="pt-2">
+              <button
+                onClick={() => {
+                  setSignupSuccess(false);
+                  setMode('login');
+                }}
+                className="py-2.5 px-6 bg-[#8E8C3A] hover:bg-[#B5B04E] text-black font-bebas text-base tracking-wider uppercase rounded-xl transition-all shadow-md active:scale-95 leading-none"
+              >
+                Ir a Iniciar Sesión
+              </button>
+            </div>
+          </div>
+        ) : recoverySent ? (
+          <div className="text-center py-4 space-y-3">
+            <div className="w-12 h-12 rounded-xl bg-[#1A1F1B] border border-emerald-500/50 flex items-center justify-center mx-auto text-emerald-400">
+              <CheckCircle2 className="w-6 h-6" />
+            </div>
+            <h3 className="font-bebas text-2xl tracking-wide text-white">¡Enlace Enviado!</h3>
+            <p className="text-xs text-zinc-300 font-barlow leading-relaxed max-w-xs mx-auto">
+              Hemos enviado las instrucciones a <span className="text-white font-semibold">{email}</span>. Revisa tu bandeja de entrada o la carpeta de spam.
+            </p>
+            <div className="pt-2">
+              <button
+                onClick={() => {
+                  setRecoverySent(false);
+                  setMode('login');
+                }}
+                className="py-2.5 px-6 bg-[#8E8C3A] hover:bg-[#B5B04E] text-black font-bebas text-base tracking-wider uppercase rounded-xl transition-all shadow-md active:scale-95 leading-none"
+              >
+                Volver a Iniciar Sesión
+              </button>
+            </div>
           </div>
         ) : (
           /* Main Form */
@@ -262,38 +297,54 @@ export const AuthDialog: React.FC<AuthDialogProps> = ({
               </div>
             )}
 
-            <div>
-              <label 
-                htmlFor={`${id}-password`}
-                className="block text-[11px] uppercase tracking-wider text-zinc-300 font-semibold mb-1.5 font-barlow"
-              >
-                Contraseña
-              </label>
-              <div className="relative">
-                <input
-                  id={`${id}-password`}
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2.5 pl-3.5 pr-10 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#8E8C3A] transition-all font-barlow font-normal"
-                />
-                <button
-                  type="button"
-                  onClick={togglePassword}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white transition-colors p-1"
-                  tabIndex={-1}
-                  aria-label={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+            {mode !== 'forgot_password' && (
+              <div>
+                <label 
+                  htmlFor={`${id}-password`}
+                  className="block text-[11px] uppercase tracking-wider text-zinc-300 font-semibold mb-1.5 font-barlow"
                 >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
+                  Contraseña
+                </label>
+                <div className="relative">
+                  <input
+                    id={`${id}-password`}
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2.5 pl-3.5 pr-10 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#8E8C3A] transition-all font-barlow font-normal"
+                  />
+                  <button
+                    type="button"
+                    onClick={togglePassword}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white transition-colors p-1"
+                    tabIndex={-1}
+                    aria-label={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+                {mode === 'login' && (
+                  <div className="mt-2 text-right">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setErrorMsg(null);
+                        setMode('forgot_password');
+                      }}
+                      className="text-xs text-zinc-400 hover:text-white transition-colors hover:underline font-barlow font-normal"
+                    >
+                      ¿Olvidaste tu contraseña?
+                    </button>
+                  </div>
+                )}
               </div>
-            </div>
+            )}
 
             <button
               type="submit"
               disabled={submitting}
-              className="w-full mt-2 py-3.5 bg-[#8E8C3A] hover:bg-[#B5B04E] text-black font-bebas text-lg tracking-wider uppercase rounded-xl transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(142,140,58,0.25)] active:scale-[0.98] disabled:opacity-50 leading-none"
+              className="w-full mt-2 py-3 bg-[#8E8C3A] hover:bg-[#B5B04E] text-black font-bebas text-base sm:text-lg tracking-wider uppercase rounded-xl transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(142,140,58,0.25)] active:scale-[0.98] disabled:opacity-50 leading-none"
             >
               {submitting ? (
                 <>
@@ -301,85 +352,79 @@ export const AuthDialog: React.FC<AuthDialogProps> = ({
                   <span>Procesando...</span>
                 </>
               ) : (
-                <span>{mode === 'signup' ? 'Crear Cuenta' : 'Entrar al Club'}</span>
+                <span>
+                  {mode === 'signup' 
+                    ? 'Crear Cuenta' 
+                    : mode === 'forgot_password' 
+                    ? 'Enviar Enlace de Recuperación' 
+                    : 'Entrar al Club'}
+                </span>
               )}
             </button>
           </form>
         )}
 
-        {/* Switch mode footer */}
-        <div className="mt-5 text-center text-sm text-zinc-300 font-barlow">
-          {mode === 'signup' ? (
-            <>
-              ¿Ya tienes una cuenta?{' '}
-              <button 
-                type="button" 
-                onClick={toggleMode} 
-                className="text-[#B5B04E] hover:underline font-semibold"
-              >
-                Inicia sesión
-              </button>
-            </>
-          ) : (
-            <>
-              ¿No tienes una cuenta aún?{' '}
-              <button 
-                type="button" 
-                onClick={toggleMode} 
-                className="text-[#B5B04E] hover:underline font-semibold"
-              >
-                Regístrate aquí
-              </button>
-            </>
-          )}
-        </div>
+        {/* Switch mode footer (solo para login o registro) */}
+        {!signupSuccess && !recoverySent && mode !== 'forgot_password' && (
+          <div className="mt-5 text-center text-sm text-zinc-300 font-barlow">
+            {mode === 'signup' ? (
+              <>
+                ¿Ya tienes una cuenta?{' '}
+                <button 
+                  type="button" 
+                  onClick={toggleMode} 
+                  className="text-[#B5B04E] hover:underline font-semibold"
+                >
+                  Inicia sesión
+                </button>
+              </>
+            ) : (
+              <>
+                ¿No tienes una cuenta aún?{' '}
+                <button 
+                  type="button" 
+                  onClick={toggleMode} 
+                  className="text-[#B5B04E] hover:underline font-semibold"
+                >
+                  Regístrate aquí
+                </button>
+              </>
+            )}
+          </div>
+        )}
 
-        {/* Google OAuth Option */}
-        {mode === 'signup' && (
-          <div className="mt-5">
-            <div className="flex items-center gap-3 my-3">
+        {/* Google OAuth Option (Google Identity Services) */}
+        {!signupSuccess && !recoverySent && mode !== 'forgot_password' && (
+          <div className="mt-4">
+            <div className="flex items-center gap-3 mb-3">
               <div className="h-px flex-1 bg-zinc-800" />
-              <span className="text-zinc-400 text-xs uppercase font-medium tracking-wider">o</span>
+              <span className="text-zinc-500 text-[10px] uppercase font-bold tracking-widest font-barlow">o</span>
               <div className="h-px flex-1 bg-zinc-800" />
             </div>
 
-            <button
-              type="button"
-              onClick={handleGoogleAuth}
-              className="w-full py-3 px-4 bg-[#1A1F1B] hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 rounded-xl text-sm font-medium text-white flex items-center justify-center gap-3 transition-all font-barlow"
-            >
-              <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
-                <path
-                  fill="#EA4335"
-                  d="M12 5c1.6 0 3 .6 4.1 1.7l3.1-3.1C17.3 1.8 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.4 9 5 12 5z"
-                />
-                <path
-                  fill="#4285F4"
-                  d="M23.5 12.3c0-.8-.1-1.7-.2-2.3H12v4.6h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.9z"
-                />
-                <path
-                  fill="#FBBC05"
-                  d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.8s.2-2.1.4-2.8L1.9 6.3C.7 8.7 0 10.3 0 12s.7 3.3 1.9 5.7l3.7-2.9z"
-                />
-                <path
-                  fill="#34A853"
-                  d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.4-6.4-5.2L1.9 16c1.8 3.7 5.6 7 10.1 7z"
-                />
-              </svg>
-              <span>Continuar con Google</span>
-            </button>
+            <GoogleLoginButton
+              text={mode === 'signup' ? 'signup_with' : 'signin_with'}
+              width={340}
+              onSuccess={() => {
+                onClose();
+                navigate('/');
+              }}
+              onError={(err) => setErrorMsg(err)}
+            />
 
-            <p className="text-xs text-zinc-400 text-center mt-3 font-barlow leading-relaxed">
-              Al registrarte aceptas los{' '}
-              <button
-                type="button"
-                onClick={() => setIsTermsOpen(true)}
-                className="underline text-zinc-300 hover:text-white transition-colors"
-              >
-                Términos y Condiciones
-              </button>{' '}
-              de Veltron Training Club.
-            </p>
+            {mode === 'signup' && (
+              <p className="text-xs text-zinc-400 text-center mt-3 font-barlow leading-relaxed">
+                Al registrarte aceptas los{' '}
+                <button
+                  type="button"
+                  onClick={() => setIsTermsOpen(true)}
+                  className="underline text-zinc-300 hover:text-white transition-colors"
+                >
+                  Términos y Condiciones
+                </button>{' '}
+                de Veltron Training Club.
+              </p>
+            )}
           </div>
         )}
       </div>

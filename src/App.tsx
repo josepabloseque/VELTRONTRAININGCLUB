@@ -1,9 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { supabase } from './lib/supabaseClient';
 import { Gatekeeper } from './components/Gatekeeper';
 import { Welcome } from './pages/Welcome';
+import { Login } from './pages/Login';
+import { Register } from './pages/Register';
+import { ResetPassword } from './pages/ResetPassword';
 import { Terms } from './pages/Terms';
 import { VeltronLogo } from './components/VeltronLogo';
 import { AdminClassModal } from './components/AdminClassModal';
@@ -92,6 +95,19 @@ const AccesosCustomIcon: React.FC<{ className?: string }> = ({ className = 'w-6 
 
 import { getLocalDateString, isClassPast } from './lib/dateUtils';
 
+const formatBadgeDateTime = (dateStr: string, timeStr: string) => {
+  if (!dateStr) return timeStr;
+  const parts = dateStr.split('-').map(Number);
+  if (parts.length === 3) {
+    const d = new Date(parts[0], parts[1] - 1, parts[2]);
+    const weekday = d.toLocaleDateString('es-ES', { weekday: 'short' }).replace('.', '');
+    const capitalizedWeekday = weekday.charAt(0).toUpperCase() + weekday.slice(1);
+    const dayNumber = d.getDate();
+    return `${capitalizedWeekday} ${dayNumber} - ${timeStr}`;
+  }
+  return timeStr;
+};
+
 // Panel principal de la plataforma
 const Dashboard: React.FC = () => {
   const { membership, user, isActive, isAdmin, signOut, refreshMembership } = useAuth();
@@ -102,6 +118,37 @@ const Dashboard: React.FC = () => {
   const [isMembershipsModalOpen, setIsMembershipsModalOpen] = useState(false);
   const [selectedClass, setSelectedClass] = useState<TrainingClass | null>(null);
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
+
+  // Fecha seleccionada para el filtro de clases de usuarios
+  const [selectedClassDate, setSelectedClassDate] = useState<string>(getLocalDateString());
+
+  // Generación de tira horizontal de los próximos 14 días
+  const classStripDays = useMemo(() => {
+    const days = [];
+    const now = new Date();
+    const dayNames = ['DOM', 'LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB'];
+
+    for (let i = 0; i < 14; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i);
+      const dateStr = getLocalDateString(d);
+      const isToday = i === 0;
+      const isTomorrow = i === 1;
+
+      days.push({
+        dateStr,
+        dayNumber: d.getDate(),
+        dayName: dayNames[d.getDay()],
+        isToday,
+        isTomorrow,
+        formattedDisplay: d.toLocaleDateString('es-ES', {
+          weekday: 'short',
+          day: 'numeric',
+          month: 'short',
+        }),
+      });
+    }
+    return days;
+  }, []);
 
   // Clases registradas (100% dinámicas desde Supabase)
   const [classes, setClasses] = useState<TrainingClass[]>(() => {
@@ -156,8 +203,6 @@ const Dashboard: React.FC = () => {
           time: item.time,
           capacity: Number(item.capacity) || 12,
           bookedCount: Number(item.booked_count) || 0,
-          workoutDescription: item.workout_description || '',
-          exercises: Array.isArray(item.exercises) ? item.exercises : [],
         }));
         setClasses(mapped);
       }
@@ -308,8 +353,6 @@ const Dashboard: React.FC = () => {
         time: newClass.time,
         capacity: newClass.capacity,
         date: newClass.date || new Date().toISOString().split('T')[0],
-        workout_description: newClass.workoutDescription || '',
-        exercises: Array.isArray(newClass.exercises) ? newClass.exercises : [],
       };
 
       const { data, error } = await supabase
@@ -333,8 +376,6 @@ const Dashboard: React.FC = () => {
                   time: data.time,
                   capacity: Number(data.capacity),
                   bookedCount: Number(data.booked_count) || 0,
-                  workoutDescription: data.workout_description || '',
-                  exercises: Array.isArray(data.exercises) ? data.exercises : [],
                 }
               : c
           )
@@ -356,8 +397,6 @@ const Dashboard: React.FC = () => {
         time: updatedClass.time,
         capacity: updatedClass.capacity,
         date: updatedClass.date || new Date().toISOString().split('T')[0],
-        workout_description: updatedClass.workoutDescription || '',
-        exercises: Array.isArray(updatedClass.exercises) ? updatedClass.exercises : [],
       };
 
       const { error } = await supabase
@@ -401,12 +440,29 @@ const Dashboard: React.FC = () => {
       return;
     }
 
+    // Regla de Negocio: Validar que el usuario no tenga ya otra clase agendada en la misma fecha
+    if (!isAlreadyBooked) {
+      const alreadyHasBookingOnDate = classes.some(
+        (c) => c.id !== classId && bookedClassIds.includes(c.id) && c.date === targetClass.date
+      );
+
+      if (alreadyHasBookingOnDate) {
+        alert('Ya tienes una clase reservada para este día. Debes cancelar tu reserva actual si deseas agendar este horario.');
+        return;
+      }
+    }
+
     // Actualización optimista local
     if (isAlreadyBooked) {
       const nextBookedIds = bookedClassIds.filter((id) => id !== classId);
       setBookedClassIds(nextBookedIds);
       setClasses((prev) =>
         prev.map((c) => (c.id === classId ? { ...c, bookedCount: Math.max(0, c.bookedCount - 1) } : c))
+      );
+      setSelectedClass((prev) =>
+        prev && prev.id === classId
+          ? { ...prev, bookedCount: Math.max(0, prev.bookedCount - 1) }
+          : prev
       );
       setBookedDates((prev) => {
         const hasOtherOnDate = classes.some(
@@ -427,6 +483,11 @@ const Dashboard: React.FC = () => {
         setClasses((prev) =>
           prev.map((c) => (c.id === classId ? { ...c, bookedCount: c.bookedCount + 1 } : c))
         );
+        setSelectedClass((prev) =>
+          prev && prev.id === classId
+            ? { ...prev, bookedCount: prev.bookedCount + 1 }
+            : prev
+        );
         fetchSupabaseClasses();
         fetchUserBookings();
         alert(e.message || 'No fue posible cancelar la reserva.');
@@ -435,6 +496,11 @@ const Dashboard: React.FC = () => {
       setBookedClassIds((prev) => [...prev, classId]);
       setClasses((prev) =>
         prev.map((c) => (c.id === classId ? { ...c, bookedCount: c.bookedCount + 1 } : c))
+      );
+      setSelectedClass((prev) =>
+        prev && prev.id === classId
+          ? { ...prev, bookedCount: prev.bookedCount + 1 }
+          : prev
       );
       setBookedDates((prev) => Array.from(new Set([...prev, targetClass.date])));
 
@@ -449,6 +515,11 @@ const Dashboard: React.FC = () => {
         setBookedClassIds((prev) => prev.filter((id) => id !== classId));
         setClasses((prev) =>
           prev.map((c) => (c.id === classId ? { ...c, bookedCount: Math.max(0, c.bookedCount - 1) } : c))
+        );
+        setSelectedClass((prev) =>
+          prev && prev.id === classId
+            ? { ...prev, bookedCount: Math.max(0, prev.bookedCount - 1) }
+            : prev
         );
         fetchSupabaseClasses();
         fetchUserBookings();
@@ -513,12 +584,11 @@ const Dashboard: React.FC = () => {
 
               return (
                 <div className="space-y-3">
-                  <h3 className="font-bebas text-xl tracking-wide uppercase text-white leading-none">
+                  <h3 className="font-bebas text-xl tracking-wide uppercase text-[#B5B04E] leading-none text-center">
                     Semana de Entrenamiento
                   </h3>
-                  <div className="bg-[#121514] border border-[#8E8C3A]/30 rounded-2xl p-3.5 sm:p-4 shadow-md">
-                    {/* Bloques de días LUN - MAR - MIÉ - JUE - VIE */}
-                    <div className="grid grid-cols-5 gap-2">
+                  {/* Bloques de días LUN - MAR - MIÉ - JUE - VIE */}
+                  <div className="grid grid-cols-5 gap-2">
                     {weekDays.map((day) => {
                       const isBooked = activeBookedDates.includes(day.dateStr);
 
@@ -551,14 +621,13 @@ const Dashboard: React.FC = () => {
                     })}
                   </div>
                 </div>
-              </div>
-            );
+              );
           })()}
 
             {/* Días / Clases Agendadas por el Usuario */}
             <div className="space-y-3">
               <div className="flex justify-between items-center">
-                <h3 className="font-bebas text-xl tracking-wide uppercase text-white leading-none">
+                <h3 className="font-bebas text-xl tracking-wide uppercase text-[#B5B04E] leading-none">
                   Tus Clases Agendadas
                 </h3>
               </div>
@@ -593,29 +662,29 @@ const Dashboard: React.FC = () => {
                           onClick={() => setSelectedClass(item)}
                           className={`border rounded-2xl p-4 transition-all cursor-pointer group shadow-sm backdrop-blur-sm ${
                             isPast
-                              ? 'bg-zinc-900/40 border-zinc-800/60 opacity-80'
-                              : 'bg-[#8E8C3A]/[0.08] hover:bg-[#8E8C3A]/[0.13] border-[#8E8C3A]/30 hover:border-[#8E8C3A]/60'
+                              ? 'bg-zinc-900/30 border-zinc-800/60 opacity-60'
+                              : 'bg-[#121514] hover:bg-zinc-900/90 border-zinc-800 hover:border-zinc-700'
                           }`}
                         >
                           <div className="flex justify-between items-start gap-2 mb-2">
                             <div className="flex-1 min-w-0 pr-1">
-                              <h4 className={`text-sm font-bold font-barlow truncate ${isPast ? 'text-zinc-400' : 'text-white group-hover:text-[#B5B04E] transition-colors'}`}>
+                              <h4 className={`text-sm font-bold font-barlow truncate ${isPast ? 'text-zinc-500' : 'text-white group-hover:text-[#B5B04E] transition-colors'}`}>
                                 {item.title}
                               </h4>
                             </div>
-                            <span className="text-xs font-mono bg-black/50 border border-[#8E8C3A]/30 text-zinc-200 px-2 py-1 rounded-lg shrink-0">
-                              {item.time}
+                            <span className="text-xs font-mono bg-[#0A0C0B] border border-zinc-800 text-zinc-300 px-2.5 py-1 rounded-lg shrink-0">
+                              {formatBadgeDateTime(item.date, item.time)}
                             </span>
                           </div>
 
-                          <div className="pt-2.5 mt-2.5 border-t border-[#8E8C3A]/20 flex items-center justify-between">
+                          <div className="pt-2.5 mt-2.5 border-t border-zinc-800/80 flex items-center justify-between">
                             <div className="flex items-center gap-1.5 text-xs font-barlow">
-                              <span className="text-zinc-400 font-medium">Inscritos:</span>
+                              <span className="text-zinc-500 font-medium">Inscritos:</span>
                               <div className="flex items-baseline font-mono font-bold">
                                 <span className={`text-base ${isPast ? 'text-zinc-500' : isFull ? 'text-red-400' : 'text-[#B5B04E]'}`}>
                                   {item.bookedCount || 0}
                                 </span>
-                                <span className="text-xs text-zinc-400 ml-0.5 font-normal">
+                                <span className="text-xs text-zinc-500 ml-0.5 font-normal">
                                   /{item.capacity}
                                 </span>
                               </div>
@@ -623,7 +692,7 @@ const Dashboard: React.FC = () => {
 
                             <div className="flex items-center gap-2">
                               {isPast && (
-                                <span className="text-[10px] font-bold px-2.5 py-0.5 rounded text-zinc-400 bg-zinc-800/80 border border-zinc-700">
+                                <span className="text-[10px] font-bold px-2.5 py-0.5 rounded text-zinc-500 bg-zinc-900 border border-zinc-800">
                                   Finalizada
                                 </span>
                               )}
@@ -653,83 +722,161 @@ const Dashboard: React.FC = () => {
         )}
 
         {/* Pestaña: CLASES (Exclusivo Atletas / Usuarios) */}
-        {!isAdmin && activeTab === 'clases' && (
-          <section className="space-y-3">
-            <div className="flex justify-between items-center">
-              <h2 className="font-bebas text-2xl tracking-wide uppercase text-white leading-none">
-                Programación de Clases
-              </h2>
-              <span className="text-[11px] text-zinc-400 font-barlow capitalize">
-                {new Date().toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })}
-              </span>
-            </div>
+        {!isAdmin && activeTab === 'clases' && (() => {
+          const dayClasses = classes.filter((item) => item.date === selectedClassDate);
+          const currentSelectedDayObj = classStripDays.find((d) => d.dateStr === selectedClassDate);
+          const displayHeaderDate = currentSelectedDayObj
+            ? currentSelectedDayObj.formattedDisplay
+            : selectedClassDate;
 
-            {/* Listado de Clases */}
-            <div className="space-y-2.5 pt-1.5">
-              {classes.length === 0 ? (
-                <div className="bg-[#121514] border border-zinc-800/80 rounded-2xl p-6 text-center text-zinc-400 font-barlow text-xs">
-                  <p className="font-semibold text-zinc-300">No hay clases programadas para hoy.</p>
-                  <p className="text-zinc-500 mt-1">El coach publicará los entrenamientos y horarios en breve.</p>
-                </div>
-              ) : (
-                classes.map((item) => {
-                  const isFull = (item.bookedCount || 0) >= item.capacity;
-                  const isPast = isClassPast(item.date, item.time);
+          return (
+            <section className="space-y-4 animate-in fade-in duration-200">
+              {/* Encabezado */}
+              <div className="flex justify-between items-center">
+                <h2 className="font-bebas text-2xl tracking-wide uppercase text-[#B5B04E] leading-none">
+                  Programación de Clases
+                </h2>
+                <span className="text-xs text-zinc-400 font-barlow font-medium capitalize">
+                  {displayHeaderDate}
+                </span>
+              </div>
+
+              {/* Tira Horizontal de Días (Próximos 14 Días) */}
+              <div className="flex gap-2 overflow-x-auto pb-2 pt-1 scrollbar-none snap-x -mx-4 px-4 sm:mx-0 sm:px-0">
+                {classStripDays.map((day) => {
+                  const isSelected = selectedClassDate === day.dateStr;
+                  const hasClasses = classes.some((c) => c.date === day.dateStr);
+                  const hasUserBooking = bookedClassIds.some((id) => {
+                    const cls = classes.find((c) => c.id === id);
+                    return cls?.date === day.dateStr;
+                  });
 
                   return (
-                    <div
-                      key={item.id}
-                      onClick={() => setSelectedClass(item)}
-                      className={`border rounded-2xl p-4 transition-all cursor-pointer group shadow-sm backdrop-blur-sm ${
-                        isPast
-                          ? 'bg-zinc-900/40 border-zinc-800/60 opacity-80'
-                          : 'bg-[#8E8C3A]/[0.08] hover:bg-[#8E8C3A]/[0.13] border-[#8E8C3A]/30 hover:border-[#8E8C3A]/60'
+                    <button
+                      key={day.dateStr}
+                      type="button"
+                      onClick={() => setSelectedClassDate(day.dateStr)}
+                      className={`flex flex-col items-center justify-between min-w-[58px] py-2 px-1 rounded-2xl border transition-all shrink-0 snap-start active:scale-95 select-none ${
+                        isSelected
+                          ? 'bg-[#8E8C3A] border-[#8E8C3A] text-black shadow-md font-bold'
+                          : day.isToday
+                          ? 'bg-[#121514] border-zinc-700 text-white hover:border-zinc-600'
+                          : 'bg-[#111413] border-zinc-800/80 text-zinc-400 hover:text-zinc-200 hover:border-zinc-700'
                       }`}
                     >
-                      <div className="flex justify-between items-start gap-2 mb-2">
-                        <div className="flex-1 min-w-0 pr-1">
-                          <h3 className={`text-sm font-bold font-barlow truncate ${isPast ? 'text-zinc-400' : 'text-white group-hover:text-[#B5B04E] transition-colors'}`}>
-                            {item.title}
-                          </h3>
-                        </div>
-                        <span className="text-xs font-mono bg-black/50 border border-[#8E8C3A]/30 text-zinc-200 px-2 py-1 rounded-lg shrink-0">
-                          {item.time}
-                        </span>
-                      </div>
+                      <span
+                        className={`text-[10px] font-bold font-barlow tracking-wider ${
+                          isSelected ? 'text-black' : day.isToday ? 'text-[#B5B04E]' : 'text-zinc-500'
+                        }`}
+                      >
+                        {day.isToday ? 'HOY' : day.dayName}
+                      </span>
 
-                      <div className="pt-2.5 mt-2.5 border-t border-[#8E8C3A]/20 flex items-center justify-between">
-                        <div className="flex items-center gap-1.5 text-xs font-barlow">
-                          <span className="text-zinc-400 font-medium">Inscritos:</span>
-                          <div className="flex items-baseline font-mono font-bold">
-                            <span className={`text-base ${isPast ? 'text-zinc-500' : isFull ? 'text-red-400' : 'text-[#B5B04E]'}`}>
-                              {item.bookedCount || 0}
-                            </span>
-                            <span className="text-xs text-zinc-400 ml-0.5 font-normal">
-                              /{item.capacity}
+                      <span
+                        className={`font-mono text-base font-bold my-0.5 ${
+                          isSelected ? 'text-black' : 'text-white'
+                        }`}
+                      >
+                        {day.dayNumber}
+                      </span>
+
+                      <div className="flex items-center justify-center gap-1 h-2">
+                        {hasUserBooking ? (
+                          <div
+                            className={`w-1.5 h-1.5 rounded-full ${
+                              isSelected
+                                ? 'bg-black'
+                                : 'bg-[#B5B04E]'
+                            }`}
+                            title="Tienes una clase agendada este día"
+                          />
+                        ) : hasClasses ? (
+                          <div
+                            className={`w-1 h-1 rounded-full ${
+                              isSelected ? 'bg-black/60' : 'bg-zinc-600'
+                            }`}
+                            title="Hay clases programadas"
+                          />
+                        ) : (
+                          <div className="w-1 h-1" />
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Listado de Clases Filtradas por el Día Seleccionado */}
+              <div className="space-y-2.5 pt-1">
+                {dayClasses.length === 0 ? (
+                  <div className="bg-[#121514] border border-zinc-800/80 rounded-2xl p-6 text-center text-zinc-400 font-barlow text-xs space-y-1">
+                    <p className="font-semibold text-zinc-300">
+                      No hay clases programadas para este día.
+                    </p>
+                    <p className="text-zinc-500">
+                      El coach publicará los entrenamientos y horarios en breve.
+                    </p>
+                  </div>
+                ) : (
+                  dayClasses.map((item) => {
+                    const isFull = (item.bookedCount || 0) >= item.capacity;
+                    const isPast = isClassPast(item.date, item.time);
+
+                    return (
+                      <div
+                        key={item.id}
+                        onClick={() => setSelectedClass(item)}
+                        className={`border rounded-2xl p-4 transition-all cursor-pointer group shadow-sm backdrop-blur-sm ${
+                          isPast
+                            ? 'bg-zinc-900/30 border-zinc-800/60 opacity-60'
+                            : 'bg-[#121514] hover:bg-zinc-900/90 border-zinc-800 hover:border-zinc-700'
+                        }`}
+                      >
+                        <div className="flex justify-between items-start gap-2 mb-2">
+                          <div className="flex-1 min-w-0 pr-1">
+                            <h3 className={`text-sm font-bold font-barlow truncate ${isPast ? 'text-zinc-500' : 'text-white group-hover:text-[#B5B04E] transition-colors'}`}>
+                              {item.title}
+                            </h3>
+                          </div>
+                          <span className="text-xs font-mono bg-[#0A0C0B] border border-zinc-800 text-zinc-300 px-2 py-1 rounded-lg shrink-0">
+                            {item.time}
+                          </span>
+                        </div>
+
+                        <div className="pt-2.5 mt-2.5 border-t border-zinc-800/80 flex items-center justify-between">
+                          <div className="flex items-center gap-1.5 text-xs font-barlow">
+                            <span className="text-zinc-500 font-medium">Inscritos:</span>
+                            <div className="flex items-baseline font-mono font-bold">
+                              <span className={`text-base ${isPast ? 'text-zinc-500' : isFull ? 'text-red-400' : 'text-[#B5B04E]'}`}>
+                                {item.bookedCount || 0}
+                              </span>
+                              <span className="text-xs text-zinc-500 ml-0.5 font-normal">
+                                /{item.capacity}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            {isPast && (
+                              <span className="text-[10px] font-bold text-zinc-500 bg-zinc-900 border border-zinc-800 px-2 py-0.5 rounded">
+                                Finalizada
+                              </span>
+                            )}
+
+                            <span className="text-xs text-zinc-400 group-hover:text-white flex items-center gap-1 font-barlow font-medium">
+                              <span>Ver</span>
+                              <ChevronRight className="w-3.5 h-3.5" />
                             </span>
                           </div>
                         </div>
-
-                        <div className="flex items-center gap-2">
-                          {isPast && (
-                            <span className="text-[10px] font-bold text-zinc-400 bg-zinc-800/80 border border-zinc-700 px-2 py-0.5 rounded">
-                              Finalizada
-                            </span>
-                          )}
-
-                          <span className="text-xs text-zinc-400 group-hover:text-white flex items-center gap-1 font-barlow font-medium">
-                            <span>Ver</span>
-                            <ChevronRight className="w-3.5 h-3.5" />
-                          </span>
-                        </div>
                       </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </section>
-        )}
+                    );
+                  })
+                )}
+              </div>
+            </section>
+          );
+        })()}
 
         {/* Pestaña: CONFIGURACIÓN DE CLASES (Exclusivo Administrador) */}
         {isAdmin && activeTab === 'clases' && (
@@ -947,15 +1094,28 @@ const Dashboard: React.FC = () => {
         onMembershipUpdated={() => refreshMembership()}
       />
 
-      <ClassDetailsModal
-        isOpen={Boolean(selectedClass)}
-        onClose={() => setSelectedClass(null)}
-        selectedClass={selectedClass}
-        isActive={isActive}
-        isAdmin={isAdmin}
-        isBooked={Boolean(selectedClass && bookedClassIds.includes(selectedClass.id))}
-        onToggleBooking={handleToggleBooking}
-      />
+      {(() => {
+        const liveSelectedClass = selectedClass
+          ? classes.find((c) => c.id === selectedClass.id) || selectedClass
+          : null;
+
+        return (
+          <ClassDetailsModal
+            isOpen={Boolean(liveSelectedClass)}
+            onClose={() => setSelectedClass(null)}
+            selectedClass={liveSelectedClass}
+            isActive={isActive}
+            isAdmin={isAdmin}
+            isBooked={Boolean(liveSelectedClass && bookedClassIds.includes(liveSelectedClass.id))}
+            hasOtherBookingOnDate={Boolean(
+              liveSelectedClass &&
+              !bookedClassIds.includes(liveSelectedClass.id) &&
+              classes.some((c) => c.id !== liveSelectedClass.id && bookedClassIds.includes(c.id) && c.date === liveSelectedClass.date)
+            )}
+            onToggleBooking={handleToggleBooking}
+          />
+        );
+      })()}
     </div>
   );
 };
@@ -966,6 +1126,10 @@ export default function App() {
       <AuthProvider>
         <Routes>
           <Route path="/welcome" element={<Welcome />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/recuperar-password" element={<ResetPassword />} />
           <Route path="/terms" element={<Terms />} />
           <Route path="/terminos" element={<Terms />} />
           <Route path="/privacy" element={<Terms />} />

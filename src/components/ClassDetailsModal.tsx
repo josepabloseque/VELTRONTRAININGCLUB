@@ -9,6 +9,7 @@ interface ClassDetailsModalProps {
   selectedClass: TrainingClass | null;
   isActive: boolean;
   isBooked: boolean;
+  hasOtherBookingOnDate?: boolean;
   isAdmin?: boolean;
   onToggleBooking: (classId: string) => void;
 }
@@ -26,6 +27,7 @@ export const ClassDetailsModal: React.FC<ClassDetailsModalProps> = ({
   selectedClass,
   isActive,
   isBooked,
+  hasOtherBookingOnDate = false,
   isAdmin = false,
   onToggleBooking,
 }) => {
@@ -94,17 +96,6 @@ export const ClassDetailsModal: React.FC<ClassDetailsModalProps> = ({
           </div>
         </div>
 
-        {/* Programación del Entreno / Descripción */}
-        <div className="space-y-2.5 mb-7">
-          <h3 className="font-bebas text-lg tracking-wider uppercase text-white leading-none">
-            Programación del Entreno
-          </h3>
-
-          <div className="p-4 bg-[#0A0C0B] border border-zinc-800/80 rounded-xl text-xs text-zinc-200 font-barlow leading-relaxed whitespace-pre-line min-h-[68px] flex items-center">
-            <p>{selectedClass.workoutDescription || 'La rutina y programación serán dirigidas directamente por el coach en sala.'}</p>
-          </div>
-        </div>
-
         {/* Action button */}
         {isAdmin ? (
           <button
@@ -118,25 +109,37 @@ export const ClassDetailsModal: React.FC<ClassDetailsModalProps> = ({
             <span>Clase Finalizada</span>
           </div>
         ) : isActive ? (
-          <button
-            onClick={() => onToggleBooking(selectedClass.id)}
-            disabled={isFull && !isBooked}
-            className={`w-full py-4 font-bebas text-lg tracking-wider uppercase rounded-xl transition-all flex items-center justify-center gap-2 leading-none active:scale-[0.98] ${
-              isBooked
-                ? 'bg-red-950/60 border border-red-800/80 text-red-300 hover:bg-red-900/80 hover:text-white shadow-[0_0_15px_rgba(220,38,38,0.15)]'
-                : isFull
-                ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
-                : 'bg-[#8E8C3A] hover:bg-[#B5B04E] text-black shadow-[0_0_20px_rgba(142,140,58,0.25)]'
-            }`}
-          >
-            {isBooked ? (
-              <span>Cancelar Mi Reserva</span>
-            ) : isFull ? (
-              <span>Clase Llena (Sin cupos)</span>
-            ) : (
-              <span>Confirmar Mi Lugar</span>
+          <div className="space-y-2">
+            {hasOtherBookingOnDate && !isBooked && (
+              <div className="p-3 bg-amber-950/40 border border-amber-500/40 rounded-xl text-center text-xs text-amber-300 font-barlow font-medium">
+                Ya tienes otra clase agendada para este día. Debes cancelarla antes de agendar este horario.
+              </div>
             )}
-          </button>
+
+            <button
+              onClick={() => onToggleBooking(selectedClass.id)}
+              disabled={(isFull && !isBooked) || (hasOtherBookingOnDate && !isBooked)}
+              className={`w-full py-4 font-bebas text-lg tracking-wider uppercase rounded-xl transition-all flex items-center justify-center gap-2 leading-none active:scale-[0.98] ${
+                isBooked
+                  ? 'bg-red-950/60 border border-red-800/80 text-red-300 hover:bg-red-900/80 hover:text-white shadow-[0_0_15px_rgba(220,38,38,0.15)]'
+                  : isFull
+                  ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
+                  : hasOtherBookingOnDate
+                  ? 'bg-zinc-800 text-zinc-500 border border-zinc-700 cursor-not-allowed'
+                  : 'bg-[#8E8C3A] hover:bg-[#B5B04E] text-black shadow-[0_0_20px_rgba(142,140,58,0.25)]'
+              }`}
+            >
+              {isBooked ? (
+                <span>Cancelar Mi Reserva</span>
+              ) : isFull ? (
+                <span>Clase Llena (Sin cupos)</span>
+              ) : hasOtherBookingOnDate ? (
+                <span>Límite Diario Alcanzado (1 clase/día)</span>
+              ) : (
+                <span>Confirmar Mi Lugar</span>
+              )}
+            </button>
+          </div>
         ) : (
           <div className="p-4 bg-[#16130D] border border-amber-500/30 rounded-xl flex items-center gap-3">
             <Lock className="w-5 h-5 text-amber-400 shrink-0" />

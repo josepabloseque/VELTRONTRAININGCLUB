@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Plus, Trash2, Dumbbell, Sparkles } from 'lucide-react';
+import { X, Dumbbell, Sparkles } from 'lucide-react';
 import type { TrainingClass } from '../types/database';
 
 interface AdminClassModalProps {
@@ -17,22 +17,8 @@ export const AdminClassModal: React.FC<AdminClassModalProps> = ({
   const [coach, setCoach] = useState('');
   const [time, setTime] = useState('06:00 AM');
   const [capacity, setCapacity] = useState<number | string>(12);
-  const [description, setDescription] = useState('');
-  const [exerciseInput, setExerciseInput] = useState('');
-  const [exercises, setExercises] = useState<string[]>([]);
 
   if (!isOpen) return null;
-
-  const handleAddExercise = () => {
-    if (exerciseInput.trim()) {
-      setExercises([...exercises, exerciseInput.trim()]);
-      setExerciseInput('');
-    }
-  };
-
-  const handleRemoveExercise = (index: number) => {
-    setExercises(exercises.filter((_, i) => i !== index));
-  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,8 +32,6 @@ export const AdminClassModal: React.FC<AdminClassModalProps> = ({
       time,
       capacity: Number(capacity) || 12,
       bookedCount: 0,
-      workoutDescription: description.trim(),
-      exercises: exercises,
     };
 
     onSaveClass(newClass);
@@ -189,74 +173,6 @@ export const AdminClassModal: React.FC<AdminClassModalProps> = ({
             </div>
           </div>
 
-          {/* Enfoque / Descripción */}
-          <div>
-            <label className="block text-[11px] uppercase tracking-wider text-zinc-300 font-semibold mb-1.5 font-barlow">
-              Enfoque / Objetivo del WOD
-            </label>
-            <textarea
-              rows={3}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder=""
-              className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2.5 px-3.5 text-base sm:text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#8E8C3A] transition-all font-barlow resize-none leading-relaxed"
-              autoCapitalize="sentences"
-              autoCorrect="on"
-              spellCheck="false"
-            />
-          </div>
-
-          {/* Ejercicios de la Clase */}
-          <div>
-            <label className="block text-[11px] uppercase tracking-wider text-zinc-300 font-semibold mb-1.5 font-barlow">
-              Ejercicios & Estructura de la Clase
-            </label>
-            
-            {/* Input para agregar ejercicio */}
-            <div className="flex gap-2 mb-2.5">
-              <input
-                type="text"
-                value={exerciseInput}
-                onChange={(e) => setExerciseInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    handleAddExercise();
-                  }
-                }}
-                placeholder="Escribe un ejercicio y presiona Enter..."
-                className="flex-1 bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2 px-3 text-xs text-white focus:outline-none font-barlow"
-              />
-              <button
-                type="button"
-                onClick={handleAddExercise}
-                className="px-3 py-2 bg-[#8E8C3A]/20 hover:bg-[#8E8C3A]/30 border border-[#8E8C3A]/40 text-[#B5B04E] rounded-xl text-xs font-bold transition-colors flex items-center gap-1 font-barlow"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Agregar</span>
-              </button>
-            </div>
-
-            {/* Lista de ejercicios agregados */}
-            <div className="space-y-1.5 max-h-40 overflow-y-auto p-2 bg-[#0A0C0B] rounded-xl border border-zinc-800/80">
-              {exercises.map((ex, index) => (
-                <div
-                  key={index}
-                  className="flex items-start justify-between gap-2 p-2 bg-zinc-900/60 rounded-lg border border-zinc-800/60 text-xs font-barlow text-zinc-200 group"
-                >
-                  <span className="font-mono text-[#8E8C3A] font-bold shrink-0">{index + 1}.</span>
-                  <span className="flex-1 leading-snug">{ex}</span>
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveExercise(index)}
-                    className="text-zinc-500 hover:text-red-400 transition-colors p-0.5 shrink-0"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
 
           {/* Botón Guardar */}
           <button

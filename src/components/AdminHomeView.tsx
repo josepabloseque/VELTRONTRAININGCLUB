@@ -239,7 +239,7 @@ export const AdminHomeView: React.FC<AdminHomeViewProps> = ({
                 >
                   <div className="flex justify-between items-start gap-2 mb-2">
                     <div className="flex-1 min-w-0 pr-1">
-                      <h4 className={`text-sm font-bold font-barlow truncate ${isPast ? 'text-neutral-400' : 'text-white group-hover:text-[#B5B04E] transition-colors'}`}>
+                      <h4 className={`text-sm font-bold font-barlow truncate ${isPast ? 'text-neutral-400' : 'text-[#B5B04E] group-hover:text-white transition-colors'}`}>
                         {item.title}
                       </h4>
                     </div>
