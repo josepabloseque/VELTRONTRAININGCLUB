@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Lock, Clock, Users } from 'lucide-react';
 import type { TrainingClass } from '../types/database';
 import { isClassPast, getLocalDateString } from '../lib/dateUtils';
+import { fetchClassAttendees, type ClassAttendee } from '../services/bookings.service';
 
 interface ClassDetailsModalProps {
   isOpen: boolean;
@@ -21,6 +22,9 @@ const getTitleClass = (title: string) => {
   return 'text-2xl sm:text-3xl tracking-wide';
 };
 
+// Caché en memoria para carga instantánea sin flasheos ni saltos
+const memoryAttendeesCache = new Map<string, ClassAttendee[]>();
+
 export const ClassDetailsModal: React.FC<ClassDetailsModalProps> = ({
   isOpen,
   onClose,
@@ -31,7 +35,15 @@ export const ClassDetailsModal: React.FC<ClassDetailsModalProps> = ({
   isAdmin = false,
   onToggleBooking,
 }) => {
-  React.useEffect(() => {
+  const [attendees, setAttendees] = useState<ClassAttendee[]>(() => {
+    if (selectedClass && memoryAttendeesCache.has(selectedClass.id)) {
+      return memoryAttendeesCache.get(selectedClass.id)!;
+    }
+    return [];
+  });
+  const [loadingAttendees, setLoadingAttendees] = useState(false);
+
+  useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
     } else {
@@ -41,6 +53,28 @@ export const ClassDetailsModal: React.FC<ClassDetailsModalProps> = ({
       document.body.style.overflow = '';
     };
   }, [isOpen]);
+
+  useEffect(() => {
+    if (isOpen && selectedClass && isAdmin) {
+      const cached = memoryAttendeesCache.get(selectedClass.id);
+      if (cached) {
+        setAttendees(cached);
+        setLoadingAttendees(false);
+      } else {
+        setLoadingAttendees(true);
+      }
+
+      fetchClassAttendees(selectedClass.id)
+        .then((data) => {
+          memoryAttendeesCache.set(selectedClass.id, data);
+          setAttendees(data);
+        })
+        .catch(() => {
+          if (!cached) setAttendees([]);
+        })
+        .finally(() => setLoadingAttendees(false));
+    }
+  }, [isOpen, selectedClass?.id, isAdmin]);
 
   if (!isOpen || !selectedClass) return null;
 
@@ -65,7 +99,7 @@ export const ClassDetailsModal: React.FC<ClassDetailsModalProps> = ({
         {/* Botón Cerrar (X) anclado a la esquina superior derecha */}
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 sm:right-5 sm:top-5 text-zinc-400 hover:text-white p-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800/80 transition-colors z-20 flex items-center justify-center"
+          className="absolute right-4 top-4 sm:right-5 sm:top-5 text-zinc-400 hover:text-white p-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800/80 transition-colors z-20 flex items-center justify-center cursor-pointer"
           aria-label="Cerrar modal"
         >
           <X className="w-4 h-4" />
@@ -98,14 +132,51 @@ export const ClassDetailsModal: React.FC<ClassDetailsModalProps> = ({
           </div>
         </div>
 
-        {/* Action button */}
+        {/* Action button / Admin View */}
         {isAdmin ? (
-          <button
-            onClick={onClose}
-            className="w-full py-4 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-300 font-bebas text-lg tracking-wider uppercase rounded-xl transition-all leading-none"
-          >
-            <span>Cerrar</span>
-          </button>
+          <div className="space-y-4">
+            {/* Sección: Lista de Inscritos */}
+            <div className="bg-[#0A0C0B] border border-zinc-800/80 rounded-2xl p-4 shadow-inner space-y-3 font-barlow">
+              <div className="flex items-center justify-between pb-2 border-b border-zinc-800/80">
+                <span className="text-xs uppercase font-bold tracking-wider text-[#B5B04E]">
+                  Lista de Inscritos
+                </span>
+                <span className="text-xs font-mono font-bold text-zinc-400">
+                  {selectedClass.bookedCount || attendees.length} / {selectedClass.capacity}
+                </span>
+              </div>
+
+              {loadingAttendees && attendees.length === 0 ? (
+                <div className="space-y-2 py-1">
+                  <div className="h-10 bg-[#121514] border border-zinc-800/50 rounded-xl animate-pulse" />
+                </div>
+              ) : attendees.length === 0 ? (
+                <div className="py-5 text-center text-xs text-zinc-500 font-barlow">
+                  Aún no hay atletas inscritos en esta clase.
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                  {attendees.map((attendee) => (
+                    <div
+                      key={attendee.id || attendee.userId}
+                      className="p-2.5 px-3.5 bg-[#121514] border border-zinc-800/80 rounded-xl flex items-center"
+                    >
+                      <span className="text-xs sm:text-sm font-medium text-zinc-200 truncate font-barlow">
+                        {attendee.fullName}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <button
+              onClick={onClose}
+              className="w-full py-3.5 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-300 font-bebas text-base tracking-wider uppercase rounded-xl transition-all leading-none cursor-pointer active:scale-[0.99]"
+            >
+              <span>Cerrar</span>
+            </button>
+          </div>
         ) : isPast ? (
           <div className="w-full py-4 bg-zinc-900 border border-zinc-800 text-zinc-500 font-bebas text-lg tracking-wider uppercase rounded-xl flex items-center justify-center gap-2 cursor-not-allowed leading-none">
             <span>Clase Finalizada</span>

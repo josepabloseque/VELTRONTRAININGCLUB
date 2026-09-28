@@ -197,7 +197,7 @@ export const AdminAccessView: React.FC<AdminAccessViewProps> = ({ onMembershipUp
       {/* Encabezado de la sección */}
       <div className="flex justify-between items-start">
         <div>
-          <h2 className="font-bebas text-2xl tracking-wide uppercase text-white leading-none">
+          <h2 className="font-bebas text-xl tracking-wide uppercase text-[#B5B04E] leading-none">
             Control de Membresías
           </h2>
           <p className="text-xs text-zinc-400 font-barlow mt-1">
@@ -291,20 +291,20 @@ export const AdminAccessView: React.FC<AdminAccessViewProps> = ({ onMembershipUp
                   setSuccessMsg(null);
                   setErrorMsg(null);
                 }}
-                className="bg-[#8E8C3A]/[0.08] hover:bg-[#8E8C3A]/[0.13] border border-[#8E8C3A]/30 hover:border-[#8E8C3A]/60 rounded-2xl p-4 transition-all cursor-pointer group active:scale-[0.99] space-y-2.5 shadow-sm backdrop-blur-sm"
+                className="bg-[#121514] border border-zinc-800 rounded-2xl p-4 transition-all cursor-pointer active:scale-[0.99] space-y-2.5 shadow-sm"
               >
                 <div className="flex justify-between items-start gap-2">
                   <div>
-                    <h4 className="text-sm font-bold text-white font-barlow group-hover:text-[#B5B04E] transition-colors">
+                    <h4 className="text-sm font-bold text-white font-barlow">
                       {athlete.fullName}
                     </h4>
                     <div className="flex flex-col gap-0.5 mt-1 text-[11px] text-zinc-300 font-barlow">
                       <span className="flex items-center gap-1.5">
-                        <Mail className="w-3 h-3 text-[#B5B04E]/70" />
+                        <Mail className="w-3 h-3 text-[#B5B04E]" />
                         {athlete.email}
                       </span>
                       <span className="flex items-center gap-1.5">
-                        <Phone className="w-3 h-3 text-[#B5B04E]/70" />
+                        <Phone className="w-3 h-3 text-[#B5B04E]" />
                         {athlete.phone}
                       </span>
                     </div>
@@ -321,15 +321,15 @@ export const AdminAccessView: React.FC<AdminAccessViewProps> = ({ onMembershipUp
                   </span>
                 </div>
 
-                <div className="pt-2 border-t border-[#8E8C3A]/20 flex items-center justify-between text-[11px] font-barlow">
+                <div className="pt-2 border-t border-zinc-800/80 flex items-center justify-between text-[11px] font-barlow">
                   <div className="flex items-center gap-1.5 text-zinc-400">
-                    <span className="text-zinc-400 text-[10px] uppercase font-bold">Vencimiento:</span>
+                    <span className="text-zinc-500 text-[10px] uppercase font-bold">Vencimiento:</span>
                     <span className="text-zinc-200 font-mono font-medium">
                       {athlete.expiresAt ? new Date(athlete.expiresAt).toLocaleDateString() : 'Sin fecha'}
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-1 text-zinc-400 group-hover:text-[#B5B04E] transition-colors text-[10px] font-semibold uppercase tracking-wider">
+                  <div className="flex items-center gap-1 text-zinc-400 text-[10px] font-semibold uppercase tracking-wider">
                     <span>Gestionar</span>
                     <ChevronRight className="w-3.5 h-3.5" />
                   </div>

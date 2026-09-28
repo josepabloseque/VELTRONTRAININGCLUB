@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Trash2, CheckCircle2, ChevronRight, X } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Trash2, CheckCircle2, ChevronRight, X, Plus, Calendar as CalendarIcon } from 'lucide-react';
 import { Calendar } from './ui/Calendar';
 import type { TrainingClass } from '../types/database';
 import { getLocalDateString, isClassPast } from '../lib/dateUtils';
@@ -9,7 +9,6 @@ interface AdminClassesViewProps {
   onAddClass: (newClass: TrainingClass) => void;
   onUpdateClass: (updatedClass: TrainingClass) => void;
   onDeleteClass: (classId: string) => void;
-  onSelectClass?: (c: TrainingClass) => void;
 }
 
 const parseTimeString = (t: string) => {
@@ -46,6 +45,7 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
 
   const [title, setTitle] = useState('');
   const [selectedDate, setSelectedDate] = useState<string>(getLocalDateString());
+  const [filterDate, setFilterDate] = useState<string>(getLocalDateString());
   const [hour, setHour] = useState('6');
   const [minute, setMinute] = useState('00');
   const [period, setPeriod] = useState<'AM' | 'PM'>('AM');
@@ -53,6 +53,8 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   const todayStr = getLocalDateString();
+
+  const dateInputRef = useRef<HTMLInputElement>(null);
 
   const formatDisplayDate = (dateStr: string) => {
     if (!dateStr) return '';
@@ -78,7 +80,7 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
 
   const resetFormFields = () => {
     setTitle('');
-    setSelectedDate(getLocalDateString());
+    setSelectedDate(filterDate || getLocalDateString());
     setHour('6');
     setMinute('00');
     setPeriod('AM');
@@ -88,6 +90,7 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
 
   const handleOpenAdd = () => {
     resetFormFields();
+    setSelectedDate(filterDate || getLocalDateString());
     setShowForm(true);
   };
 
@@ -143,12 +146,18 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
       };
 
       onAddClass(newClass);
+      setFilterDate(selectedDate);
       setSuccessMsg(`Clase "${title}" programada para el ${formatDisplayDate(selectedDate)} exitosamente`);
     }
 
     setTimeout(() => setSuccessMsg(null), 3500);
     handleCloseForm();
   };
+
+  // Filtrado: si hay filterDate, filtra por esa fecha; si no, muestra todas
+  const filteredDayClasses = filterDate
+    ? classes.filter((c) => c.date === filterDate)
+    : classes;
 
   return (
     <section className="space-y-4">
@@ -171,22 +180,9 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
 
             <button
               onClick={handleOpenAdd}
-              className="py-2 px-3 bg-[#8E8C3A] hover:bg-[#B5B04E] text-black font-bebas text-xs tracking-wider uppercase rounded-xl transition-all inline-flex items-center justify-center gap-1.5 active:scale-95 leading-none shadow-[0_0_12px_rgba(142,140,58,0.25)] shrink-0"
+              className="py-2 px-3 bg-[#8E8C3A] hover:bg-[#B5B04E] text-black font-bebas text-xs tracking-wider uppercase rounded-xl transition-all inline-flex items-center justify-center gap-1.5 active:scale-95 leading-none shadow-[0_0_12px_rgba(142,140,58,0.25)] shrink-0 cursor-pointer"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth="2.5"
-                stroke="currentColor"
-                className="w-3.5 h-3.5 shrink-0 -translate-y-[1.5px]"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M12 4.5v15m7.5-7.5h-15"
-                />
-              </svg>
+              <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
               <span className="leading-none">Agregar Clase</span>
             </button>
           </div>
@@ -195,14 +191,61 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
           </p>
         </div>
 
-        {/* Listado de Clases */}
+        {/* Barra de Filtro de Fecha Mínima y Elegante */}
+        <div className="relative">
+          <input
+            ref={dateInputRef}
+            type="date"
+            value={filterDate}
+            onChange={(e) => setFilterDate(e.target.value)}
+            className="absolute inset-0 opacity-0 pointer-events-none w-full h-full"
+            tabIndex={-1}
+          />
+
+          <button
+            type="button"
+            onClick={() => {
+              if (dateInputRef.current) {
+                if ('showPicker' in HTMLInputElement.prototype) {
+                  try {
+                    dateInputRef.current.showPicker();
+                  } catch {
+                    dateInputRef.current.focus();
+                  }
+                } else {
+                  dateInputRef.current.focus();
+                }
+              }
+            }}
+            className="w-full flex items-center justify-between p-3 bg-[#121514] hover:bg-zinc-900 border border-zinc-800/80 hover:border-zinc-700 rounded-2xl transition-all cursor-pointer active:scale-[0.99] group"
+          >
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-[#B5B04E] group-hover:border-[#8E8C3A]/50 transition-colors shrink-0">
+                <CalendarIcon className="w-4 h-4" />
+              </div>
+              <span className="font-bebas text-sm tracking-wider uppercase text-zinc-300 group-hover:text-white transition-colors">
+                FILTRAR POR FECHA
+              </span>
+            </div>
+
+            {filterDate && (
+              <span className="text-xs font-barlow text-[#B5B04E] font-medium capitalize bg-[#8E8C3A]/10 border border-[#8E8C3A]/30 px-2.5 py-1 rounded-lg">
+                {formatDisplayDate(filterDate)}
+              </span>
+            )}
+          </button>
+        </div>
+
+        {/* Listado de Clases Filtradas por Día */}
         <div className="space-y-2.5">
-          {classes.length === 0 ? (
-            <div className="p-8 text-center text-zinc-500 text-xs font-barlow bg-[#121514] rounded-2xl border border-zinc-800/80">
-              No hay clases programadas. Toca "Agregar Clase" para crear una.
+          {filteredDayClasses.length === 0 ? (
+            <div className="p-6 text-center bg-[#121514] rounded-2xl border border-zinc-800/80">
+              <p className="text-zinc-400 text-xs font-barlow font-medium">
+                No hay clases programadas para esta fecha.
+              </p>
             </div>
           ) : (
-            classes.map((item) => {
+            filteredDayClasses.map((item) => {
               const isFull = (item.bookedCount || 0) >= item.capacity;
               const isCurrentlyEditing = editingClass?.id === item.id;
               const isPast = isClassPast(item.date, item.time);
@@ -244,7 +287,7 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2.5">
                       {/* Botón Eliminar rápido */}
                       <button
                         type="button"
@@ -260,6 +303,7 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
 
+                      {/* Acción Editar */}
                       <div className="flex items-center gap-1 text-zinc-400 group-hover:text-[#B5B04E] transition-colors text-[10px] font-semibold uppercase tracking-wider font-barlow">
                         <span>Editar</span>
                         <ChevronRight className="w-3.5 h-3.5" />
@@ -301,7 +345,7 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
             {/* Encabezado del Formulario */}
             <div className="mb-4 pr-10">
               <h2 className="font-bebas text-2xl tracking-wide uppercase text-white leading-none">
-                {editingClass ? 'Editar Clase' : 'Nueva Sesión de Clase'}
+                {editingClass ? 'Editar Clase' : 'Crear Clase'}
               </h2>
             </div>
 

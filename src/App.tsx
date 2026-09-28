@@ -719,7 +719,7 @@ const Dashboard: React.FC = () => {
                         <div
                           key={item.id}
                           onClick={() => setSelectedClass(item)}
-                          className={`border rounded-2xl p-4 transition-all cursor-pointer group shadow-sm backdrop-blur-sm ${
+                          className={`border rounded-2xl p-4 transition-all cursor-pointer group shadow-sm ${
                             isPast
                               ? 'bg-zinc-900/30 border-zinc-800/60 opacity-60'
                               : 'bg-[#121514] hover:bg-zinc-900/90 border-zinc-800 hover:border-zinc-700'
@@ -942,7 +942,6 @@ const Dashboard: React.FC = () => {
             onAddClass={handleSaveClass}
             onUpdateClass={handleUpdateClass}
             onDeleteClass={handleDeleteClass}
-            onSelectClass={setSelectedClass}
           />
         )}
 

@@ -1,4 +1,4 @@
-﻿import { supabase } from '../lib/supabaseClient';
+import { supabase } from '../lib/supabaseClient';
 
 export interface BookingResponse {
   success: boolean;
@@ -40,5 +40,70 @@ export async function cancelClassBooking(classId: string, userId: string): Promi
 
   if (error) {
     throw new Error(error.message);
+  }
+}
+
+export interface ClassAttendee {
+  id: string;
+  userId: string;
+  fullName: string;
+  createdAt: string;
+}
+
+/**
+ * Consulta la lista de atletas inscritos en una clase específica mediante RPC en Supabase.
+ */
+export async function fetchClassAttendees(classId: string): Promise<ClassAttendee[]> {
+  try {
+    const numericId = Number(classId);
+    const idParam = isNaN(numericId) ? classId : numericId;
+
+    // 1. Intento primario: Función RPC optimizada en Supabase (JOIN atómico a nivel de BD)
+    const { data: rpcData, error: rpcErr } = await supabase.rpc('get_class_attendees', {
+      p_class_id: idParam,
+    });
+
+    if (!rpcErr && Array.isArray(rpcData)) {
+      return rpcData.map((b: any) => ({
+        id: String(b.booking_id || b.id),
+        userId: String(b.user_id),
+        fullName: b.full_name || 'Atleta',
+        createdAt: b.created_at,
+      }));
+    }
+
+    // 2. Fallback de compatibilidad si aún no se ha corrido la migración SQL
+    const [{ data: bookings, error: bookingsErr }, { data: directory }] = await Promise.all([
+      supabase
+        .from('class_bookings')
+        .select('id, user_id, created_at')
+        .eq('class_id', classId)
+        .order('created_at', { ascending: true }),
+      supabase.rpc('get_athletes_directory'),
+    ]);
+
+    if (bookingsErr) {
+      console.error('Error al consultar inscritos:', bookingsErr);
+      return [];
+    }
+
+    const dirMap = new Map<string, string>();
+    if (Array.isArray(directory)) {
+      directory.forEach((item: any) => {
+        if (item.user_id) {
+          dirMap.set(item.user_id, item.full_name || item.email?.split('@')[0] || 'Atleta');
+        }
+      });
+    }
+
+    return (bookings || []).map((b: any) => ({
+      id: String(b.id),
+      userId: String(b.user_id),
+      fullName: dirMap.get(b.user_id) || 'Atleta',
+      createdAt: b.created_at,
+    }));
+  } catch (err) {
+    console.error('Error al obtener lista de inscritos:', err);
+    return [];
   }
 }
