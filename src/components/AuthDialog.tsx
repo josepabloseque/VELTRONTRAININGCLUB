@@ -403,8 +403,7 @@ export const AuthDialog: React.FC<AuthDialogProps> = ({
             </div>
 
             <GoogleLoginButton
-              text={mode === 'signup' ? 'signup_with' : 'signin_with'}
-              width={340}
+              text="Continuar con Google"
               onSuccess={() => {
                 onClose();
                 navigate('/');

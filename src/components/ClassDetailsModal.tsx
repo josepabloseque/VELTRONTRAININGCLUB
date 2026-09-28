@@ -1,7 +1,7 @@
 import React from 'react';
 import { X, Lock, Clock, Users } from 'lucide-react';
 import type { TrainingClass } from '../types/database';
-import { isClassPast } from '../lib/dateUtils';
+import { isClassPast, getLocalDateString } from '../lib/dateUtils';
 
 interface ClassDetailsModalProps {
   isOpen: boolean;
@@ -46,6 +46,8 @@ export const ClassDetailsModal: React.FC<ClassDetailsModalProps> = ({
 
   const isPast = isClassPast(selectedClass.date, selectedClass.time);
   const isFull = (selectedClass.bookedCount || 0) >= selectedClass.capacity && !isBooked;
+  const todayStr = getLocalDateString();
+  const isToday = selectedClass.date === todayStr;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
@@ -118,10 +120,12 @@ export const ClassDetailsModal: React.FC<ClassDetailsModalProps> = ({
 
             <button
               onClick={() => onToggleBooking(selectedClass.id)}
-              disabled={(isFull && !isBooked) || (hasOtherBookingOnDate && !isBooked)}
+              disabled={(isFull && !isBooked) || (hasOtherBookingOnDate && !isBooked) || (!isToday && !isBooked)}
               className={`w-full py-4 font-bebas text-lg tracking-wider uppercase rounded-xl transition-all flex items-center justify-center gap-2 leading-none active:scale-[0.98] ${
                 isBooked
                   ? 'bg-red-950/60 border border-red-800/80 text-red-300 hover:bg-red-900/80 hover:text-white shadow-[0_0_15px_rgba(220,38,38,0.15)]'
+                  : !isToday
+                  ? 'bg-zinc-900/90 text-zinc-500 border border-zinc-800/90 cursor-not-allowed'
                   : isFull
                   ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
                   : hasOtherBookingOnDate
@@ -131,6 +135,11 @@ export const ClassDetailsModal: React.FC<ClassDetailsModalProps> = ({
             >
               {isBooked ? (
                 <span>Cancelar Mi Reserva</span>
+              ) : !isToday ? (
+                <>
+                  <Lock className="w-4 h-4 text-zinc-500 stroke-[2.2]" />
+                  <span>Disponible el Día de la Clase</span>
+                </>
               ) : isFull ? (
                 <span>Clase Llena (Sin cupos)</span>
               ) : hasOtherBookingOnDate ? (

@@ -22,7 +22,8 @@ import {
   House, 
   ChevronRight,
   CheckCircle2,
-  Edit3
+  Edit3,
+  Plus
 } from 'lucide-react';
 import { reserveClass, cancelClassBooking } from './services/bookings.service';
 
@@ -205,6 +206,11 @@ const Dashboard: React.FC = () => {
           bookedCount: Number(item.booked_count) || 0,
         }));
         setClasses(mapped);
+        setSelectedClass((prev) => {
+          if (!prev) return null;
+          const fresh = mapped.find((c) => c.id === prev.id);
+          return fresh ? { ...prev, bookedCount: fresh.bookedCount } : prev;
+        });
       }
     } catch (err) {
       console.error('Error al sincronizar clases desde Supabase:', err);
@@ -327,15 +333,7 @@ const Dashboard: React.FC = () => {
       if (!y || !m || !d) return rawDate;
       
       const date = new Date(y, m - 1, d);
-      const formatted = date.toLocaleDateString('es-CR', { day: 'numeric', month: 'long', year: 'numeric' });
-
-      const today = new Date();
-      let age = today.getFullYear() - y;
-      const mDiff = today.getMonth() - (m - 1);
-      if (mDiff < 0 || (mDiff === 0 && today.getDate() < d)) {
-        age--;
-      }
-      return `${formatted} (${age} años)`;
+      return date.toLocaleDateString('es-CR', { day: 'numeric', month: 'long', year: 'numeric' });
     } catch {
       return rawDate;
     }
@@ -440,6 +438,13 @@ const Dashboard: React.FC = () => {
       return;
     }
 
+    // Regla de Negocio: Validar que el atleta solo pueda agendar clases para la fecha de hoy
+    const todayStr = getLocalDateString();
+    if (!isAdmin && !isAlreadyBooked && targetClass.date !== todayStr) {
+      alert('Solo es posible agendar clases correspondientes a la fecha de hoy.');
+      return;
+    }
+
     // Regla de Negocio: Validar que el usuario no tenga ya otra clase agendada en la misma fecha
     if (!isAlreadyBooked) {
       const alreadyHasBookingOnDate = classes.some(
@@ -541,13 +546,13 @@ const Dashboard: React.FC = () => {
       </header>
 
       {/* Contenido Principal */}
-      <main className="max-w-md mx-auto w-full px-5 pt-7 sm:pt-8 space-y-6 flex-1">
+      <main className="max-w-md mx-auto w-full px-5 pt-7 sm:pt-8 space-y-6">
 
 
         {/* Pestaña: INICIO (Exclusivo Atletas) */}
         {!isAdmin && activeTab === 'inicio' && (
-          <section className="space-y-8">
-            {/* Barra de Asistencia / Racha Semanal (Lunes a Viernes) */}
+          <section className="space-y-5 animate-in fade-in duration-200">
+            {/* Tarjeta 1: Asistencia Semanal / Racha */}
             {(() => {
               const now = new Date();
               const currentDay = now.getDay();
@@ -583,10 +588,13 @@ const Dashboard: React.FC = () => {
               );
 
               return (
-                <div className="space-y-3">
-                  <h3 className="font-bebas text-xl tracking-wide uppercase text-[#B5B04E] leading-none text-center">
-                    Semana de Entrenamiento
-                  </h3>
+                <div className="bg-[#121514] border border-zinc-800/80 rounded-2xl p-4 shadow-md space-y-3 font-barlow">
+                  <div className="pb-1 border-b border-zinc-800/60">
+                    <span className="text-[10px] uppercase font-bold tracking-wider text-[#B5B04E] font-barlow">
+                      Asistencia Semanal
+                    </span>
+                  </div>
+
                   {/* Bloques de días LUN - MAR - MIÉ - JUE - VIE */}
                   <div className="grid grid-cols-5 gap-2">
                     {weekDays.map((day) => {
@@ -595,7 +603,7 @@ const Dashboard: React.FC = () => {
                       return (
                         <div
                           key={day.dateStr}
-                          className={`flex flex-col items-center justify-center py-3.5 sm:py-4 px-1 rounded-xl border transition-all ${
+                          className={`flex flex-col items-center justify-center py-3 px-1 rounded-xl border transition-all ${
                             isBooked
                               ? 'bg-emerald-950/60 border-emerald-500/70 text-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.2)]'
                               : day.isToday
@@ -625,34 +633,42 @@ const Dashboard: React.FC = () => {
           })()}
 
             {/* Días / Clases Agendadas por el Usuario */}
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
+            <div className="space-y-2.5 pt-1">
+              <div className="flex justify-between items-center px-0.5">
                 <h3 className="font-bebas text-xl tracking-wide uppercase text-[#B5B04E] leading-none">
-                  Tus Clases Agendadas
+                  Sesiones de Hoy
                 </h3>
               </div>
 
-              {classes.filter((c) => bookedClassIds.includes(c.id)).length === 0 ? (
-                <div className="bg-[#121514] border border-zinc-800/80 rounded-2xl p-6 text-center space-y-3">
-                  <p className="text-xs font-semibold text-zinc-300 font-barlow">
-                    No tienes clases agendadas para hoy ni mañana.
-                  </p>
-                  <p className="text-[11px] text-zinc-500 font-barlow">
-                    Explora los horarios disponibles y reserva tu cupo en sala.
-                  </p>
-                  <button
-                    onClick={() => setActiveTab('clases')}
-                    className="inline-flex items-center gap-1.5 py-2 px-4 bg-[#8E8C3A] hover:bg-[#B5B04E] text-black font-bebas text-sm tracking-wider uppercase rounded-xl transition-all shadow-md active:scale-95"
-                  >
-                    <span>Ver Horarios Disponibles</span>
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {classes
-                    .filter((c) => bookedClassIds.includes(c.id))
-                    .map((item) => {
+              {(() => {
+                const todayStr = getLocalDateString();
+                const todayBookedClasses = classes.filter((c) => bookedClassIds.includes(c.id) && c.date === todayStr);
+
+                if (todayBookedClasses.length === 0) {
+                  return (
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('clases')}
+                      className="w-full border border-dashed border-zinc-800 hover:border-[#8E8C3A]/50 bg-zinc-900/30 hover:bg-zinc-900/60 rounded-2xl p-5 sm:p-6 flex flex-col items-center justify-center text-center gap-2.5 cursor-pointer transition-all group active:scale-[0.99]"
+                    >
+                      <div className="w-10 h-10 rounded-full bg-zinc-800/80 border border-zinc-700/60 flex items-center justify-center text-[#B5B04E] group-hover:scale-110 group-hover:border-[#8E8C3A]/60 group-hover:bg-[#8E8C3A]/15 transition-all shadow-inner">
+                        <Plus className="w-5 h-5 stroke-[2.5]" />
+                      </div>
+                      <div className="space-y-0.5">
+                        <span className="text-xs font-bold uppercase tracking-wider text-zinc-300 group-hover:text-[#B5B04E] transition-colors font-barlow block">
+                          Agendar Clase de Hoy
+                        </span>
+                        <span className="text-[11px] text-zinc-500 font-barlow block">
+                          Ir a la pestaña de Clases para agendar
+                        </span>
+                      </div>
+                    </button>
+                  );
+                }
+
+                return (
+                  <div className="space-y-3">
+                    {todayBookedClasses.map((item) => {
                       const isPast = isClassPast(item.date, item.time);
                       const isFull = (item.bookedCount || 0) >= item.capacity;
 
@@ -668,7 +684,7 @@ const Dashboard: React.FC = () => {
                         >
                           <div className="flex justify-between items-start gap-2 mb-2">
                             <div className="flex-1 min-w-0 pr-1">
-                              <h4 className={`text-sm font-bold font-barlow truncate ${isPast ? 'text-zinc-500' : 'text-white group-hover:text-[#B5B04E] transition-colors'}`}>
+                              <h4 className={`text-sm font-semibold font-barlow tracking-wide truncate ${isPast ? 'text-zinc-500' : 'text-zinc-200 group-hover:text-[#B5B04E] transition-colors'}`}>
                                 {item.title}
                               </h4>
                             </div>
@@ -706,8 +722,9 @@ const Dashboard: React.FC = () => {
                         </div>
                       );
                     })}
-                </div>
-              )}
+                  </div>
+                );
+              })()}
             </div>
           </section>
         )}
@@ -733,7 +750,7 @@ const Dashboard: React.FC = () => {
             <section className="space-y-4 animate-in fade-in duration-200">
               {/* Encabezado */}
               <div className="flex justify-between items-center">
-                <h2 className="font-bebas text-2xl tracking-wide uppercase text-[#B5B04E] leading-none">
+                <h2 className="font-bebas text-xl tracking-wide uppercase text-[#B5B04E] leading-none">
                   Programación de Clases
                 </h2>
                 <span className="text-xs text-zinc-400 font-barlow font-medium capitalize">
@@ -809,12 +826,9 @@ const Dashboard: React.FC = () => {
               {/* Listado de Clases Filtradas por el Día Seleccionado */}
               <div className="space-y-2.5 pt-1">
                 {dayClasses.length === 0 ? (
-                  <div className="bg-[#121514] border border-zinc-800/80 rounded-2xl p-6 text-center text-zinc-400 font-barlow text-xs space-y-1">
-                    <p className="font-semibold text-zinc-300">
+                  <div className="bg-[#121514] border border-zinc-800/80 rounded-2xl p-6 text-center font-barlow">
+                    <p className="text-xs text-zinc-500 font-medium">
                       No hay clases programadas para este día.
-                    </p>
-                    <p className="text-zinc-500">
-                      El coach publicará los entrenamientos y horarios en breve.
                     </p>
                   </div>
                 ) : (
@@ -834,11 +848,11 @@ const Dashboard: React.FC = () => {
                       >
                         <div className="flex justify-between items-start gap-2 mb-2">
                           <div className="flex-1 min-w-0 pr-1">
-                            <h3 className={`text-sm font-bold font-barlow truncate ${isPast ? 'text-zinc-500' : 'text-white group-hover:text-[#B5B04E] transition-colors'}`}>
+                            <h3 className={`text-sm font-semibold font-barlow tracking-wide truncate ${isPast ? 'text-zinc-500' : 'text-zinc-200 group-hover:text-[#B5B04E] transition-colors'}`}>
                               {item.title}
                             </h3>
                           </div>
-                          <span className="text-xs font-mono bg-[#0A0C0B] border border-zinc-800 text-zinc-300 px-2 py-1 rounded-lg shrink-0">
+                          <span className="text-xs font-mono bg-[#0A0C0B] border border-zinc-800 text-zinc-300 px-2.5 py-1 rounded-lg shrink-0">
                             {item.time}
                           </span>
                         </div>
@@ -897,65 +911,68 @@ const Dashboard: React.FC = () => {
         {/* Pestaña: PERFIL */}
         {activeTab === 'perfil' && (
           <section className="space-y-4 animate-in fade-in duration-200">
-            {/* Header con Avatar, Nombre, Badge y Botón Sutil de Edición */}
-            <div className="bg-[#121514] border border-zinc-800/80 rounded-2xl p-4 flex items-center justify-between gap-3 shadow-md">
-              <div className="flex items-center gap-3.5 min-w-0">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#1A1F1B] to-[#121514] border border-[#8E8C3A]/50 flex items-center justify-center text-[#B5B04E] font-bebas text-xl shrink-0 shadow-inner select-none">
-                  {fullName.charAt(0).toUpperCase() || 'U'}
-                </div>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-base font-bold text-white font-barlow leading-tight truncate">
-                      {fullName}
-                    </h3>
-                    {!isAdmin && (
-                      <button
-                        onClick={() => setIsEditProfileOpen(true)}
-                        className="p-1 rounded-lg text-zinc-400 hover:text-[#B5B04E] hover:bg-zinc-800/60 transition-colors"
-                        title="Editar datos de contacto"
-                      >
-                        <Edit3 className="w-3.5 h-3.5" />
-                      </button>
-                    )}
+            {/* Tarjeta Principal de Atleta: Identidad + Métricas/Estado */}
+            <div className="bg-[#121514] border border-zinc-800/80 rounded-2xl shadow-md overflow-hidden">
+              {/* Header: Avatar, Nombre y Botón de Edición */}
+              <div className="p-4 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3.5 min-w-0">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#1A1F1B] to-[#121514] border border-[#8E8C3A]/50 flex items-center justify-center text-[#B5B04E] font-bebas text-xl shrink-0 shadow-inner select-none">
+                    {fullName.charAt(0).toUpperCase() || 'U'}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-base font-bold text-white font-barlow leading-tight truncate">
+                        {fullName}
+                      </h3>
+                      {!isAdmin && (
+                        <button
+                          onClick={() => setIsEditProfileOpen(true)}
+                          className="p-1 rounded-lg text-zinc-400 hover:text-[#B5B04E] hover:bg-zinc-800/60 transition-colors"
+                          title="Editar datos de contacto"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
+
+              {/* Subsección: Métricas de Entrenamiento y Estado de Membresía (Solo Atletas) */}
+              {!isAdmin && (
+                <div className="border-t border-zinc-800/80 p-4 grid grid-cols-2 divide-x divide-zinc-800/80 bg-zinc-950/30">
+                  {/* Columna 1: Clases completadas */}
+                  <div className="pr-4 flex flex-col justify-between">
+                    <span className="text-[10px] uppercase font-bold tracking-wider text-zinc-400 font-barlow">
+                      Clases Completadas
+                    </span>
+                    <div className="mt-2 flex items-baseline gap-1.5">
+                      <span className="font-bebas text-2xl sm:text-3xl text-[#B5B04E] leading-none">
+                        {completedClassesCount}
+                      </span>
+                      <span className="text-[11px] font-semibold text-zinc-400 font-barlow">
+                        {completedClassesCount === 1 ? 'sesión' : 'sesiones'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Columna 2: Vencimiento de Membresía */}
+                  <div className="pl-4 flex flex-col justify-between">
+                    <span className="text-[10px] uppercase font-bold tracking-wider text-zinc-400 font-barlow">
+                      Vencimiento
+                    </span>
+                    <div className="mt-2">
+                      <span className={`font-mono text-sm font-bold block leading-none ${isActive ? 'text-zinc-100' : 'text-red-400'}`}>
+                        {membership?.expires_at ? new Date(membership.expires_at).toLocaleDateString('es-CR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'Sin fecha'}
+                      </span>
+                      <span className={`text-[9px] font-bold uppercase tracking-wider block mt-1 ${isActive ? 'text-emerald-400' : 'text-red-400'}`}>
+                        {isActive ? 'Activo' : 'Vencido'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
-
-            {/* Tarjeta Unificada de Métricas / Estado (Solo Atletas) */}
-            {!isAdmin && (
-              <div className="bg-[#121514] border border-zinc-800/80 rounded-2xl p-4 shadow-md grid grid-cols-2 divide-x divide-zinc-800/80">
-                {/* Columna 1: Clases completadas */}
-                <div className="pr-4 flex flex-col justify-between">
-                  <span className="text-[10px] uppercase font-bold tracking-wider text-zinc-400 font-barlow">
-                    Clases Completadas
-                  </span>
-                  <div className="mt-2.5 flex items-baseline gap-1.5">
-                    <span className="font-bebas text-3xl text-[#B5B04E] leading-none">
-                      {completedClassesCount}
-                    </span>
-                    <span className="text-[11px] font-semibold text-zinc-400 font-barlow">
-                      {completedClassesCount === 1 ? 'sesión' : 'sesiones'}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Columna 2: Vencimiento de Membresía */}
-                <div className="pl-4 flex flex-col justify-between">
-                  <span className="text-[10px] uppercase font-bold tracking-wider text-zinc-400 font-barlow">
-                    Vencimiento
-                  </span>
-                  <div className="mt-2.5">
-                    <span className={`font-mono text-sm font-bold block leading-none ${isActive ? 'text-zinc-100' : 'text-red-400'}`}>
-                      {membership?.expires_at ? new Date(membership.expires_at).toLocaleDateString('es-CR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'Sin fecha'}
-                    </span>
-                    <span className={`text-[9px] font-bold uppercase tracking-wider block mt-1.5 ${isActive ? 'text-emerald-400' : 'text-red-400'}`}>
-                      {isActive ? 'Activo' : 'Vencido'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
 
             {/* Sección: Información de la Cuenta */}
             <div className="bg-[#121514] border border-zinc-800/80 rounded-2xl p-4 shadow-md space-y-3 font-barlow">
@@ -1023,15 +1040,6 @@ const Dashboard: React.FC = () => {
             </div>
           </section>
         )}
-
-        {/* Modal para editar perfil */}
-        <EditProfileModal
-          isOpen={isEditProfileOpen}
-          onClose={() => setIsEditProfileOpen(false)}
-          initialName={fullName}
-          initialPhone={phone}
-          initialBirthDate={birthDate}
-        />
       </main>
 
       {/* Navegación Móvil Inferior */}
@@ -1081,7 +1089,15 @@ const Dashboard: React.FC = () => {
         </div>
       </nav>
 
-      {/* Modales */}
+      {/* Modales a nivel raíz */}
+      <EditProfileModal
+        isOpen={isEditProfileOpen}
+        onClose={() => setIsEditProfileOpen(false)}
+        initialName={fullName}
+        initialPhone={phone}
+        initialBirthDate={birthDate}
+      />
+
       <AdminClassModal
         isOpen={isClassModalOpen}
         onClose={() => setIsClassModalOpen(false)}

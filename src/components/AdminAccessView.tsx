@@ -159,7 +159,7 @@ export const AdminAccessView: React.FC<AdminAccessViewProps> = ({ onMembershipUp
       });
 
       setSelectedAthlete(updatedAthlete);
-      setSuccessMsg(`Membresía guardada hasta el ${new Date(`${endDate}T12:00:00`).toLocaleDateString()} para ${athlete.fullName}.`);
+      setSuccessMsg(`Membresía guardada hasta el ${new Date(`${endDate}T12:00:00`).toLocaleDateString()}.`);
       if (onMembershipUpdated) onMembershipUpdated();
     } catch (err: any) {
       console.error('Error updating membership in Supabase:', err);

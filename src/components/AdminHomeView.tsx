@@ -194,12 +194,9 @@ export const AdminHomeView: React.FC<AdminHomeViewProps> = ({
       {/* 3. SECCIÓN SESIONES DE HOY */}
       <div className="space-y-2.5 pt-1">
         <div className="flex justify-between items-center px-0.5">
-          <h3 className="font-bebas text-xl tracking-wide uppercase text-white leading-none">
+          <h3 className="font-bebas text-xl tracking-wide uppercase text-[#B5B04E] leading-none">
             Sesiones de Hoy
           </h3>
-          <span className="text-[11px] text-neutral-400 font-barlow capitalize">
-            {new Date().toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })}
-          </span>
         </div>
 
         {/* Listado o Empty State */}
@@ -234,16 +231,16 @@ export const AdminHomeView: React.FC<AdminHomeViewProps> = ({
                   className={`border rounded-2xl p-4 transition-all cursor-pointer group shadow-sm backdrop-blur-sm ${
                     isPast
                       ? 'bg-neutral-900/40 border-neutral-800/60 opacity-80'
-                      : 'bg-neutral-900 hover:bg-[#8E8C3A]/[0.06] border-neutral-800 hover:border-[#8E8C3A]/40'
+                      : 'bg-[#121514] hover:bg-neutral-900/90 border-neutral-800 hover:border-neutral-700'
                   }`}
                 >
                   <div className="flex justify-between items-start gap-2 mb-2">
                     <div className="flex-1 min-w-0 pr-1">
-                      <h4 className={`text-sm font-bold font-barlow truncate ${isPast ? 'text-neutral-400' : 'text-[#B5B04E] group-hover:text-white transition-colors'}`}>
+                      <h4 className={`text-sm font-semibold font-barlow tracking-wide truncate ${isPast ? 'text-neutral-500' : 'text-zinc-200 group-hover:text-[#B5B04E] transition-colors'}`}>
                         {item.title}
                       </h4>
                     </div>
-                    <span className="text-xs font-mono bg-[#0A0C0B] border border-neutral-800 text-neutral-200 px-2 py-1 rounded-lg shrink-0">
+                    <span className="text-xs font-mono bg-[#0A0C0B] border border-neutral-800 text-neutral-200 px-2.5 py-1 rounded-lg shrink-0">
                       {item.time}
                     </span>
                   </div>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, CheckCircle2, ChevronRight, X } from 'lucide-react';
+import { Trash2, CheckCircle2, ChevronRight, X } from 'lucide-react';
 import { Calendar } from './ui/Calendar';
 import type { TrainingClass } from '../types/database';
 import { getLocalDateString, isClassPast } from '../lib/dateUtils';
@@ -163,23 +163,36 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
       {/* LISTA DE CLASES PROGRAMADAS (Vista base) */}
       <div className="space-y-4 animate-in fade-in duration-200">
         {/* Encabezado */}
-        <div className="flex justify-between items-center">
-          <div>
-            <h2 className="font-bebas text-2xl tracking-wide uppercase text-white leading-none">
+        <div>
+          <div className="flex justify-between items-center gap-3">
+            <h2 className="font-bebas text-xl tracking-wide uppercase text-[#B5B04E] leading-none">
               Programación de Clases
             </h2>
-            <p className="text-xs text-zinc-400 font-barlow mt-0.5">
-              Administra y agrega clases
-            </p>
-          </div>
 
-          <button
-            onClick={handleOpenAdd}
-            className="py-2 px-3 bg-[#8E8C3A] hover:bg-[#B5B04E] text-black font-bebas text-xs tracking-wider uppercase rounded-xl transition-all flex items-center gap-1.5 active:scale-95 leading-none shadow-[0_0_12px_rgba(142,140,58,0.25)]"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Agregar Clase</span>
-          </button>
+            <button
+              onClick={handleOpenAdd}
+              className="py-2 px-3 bg-[#8E8C3A] hover:bg-[#B5B04E] text-black font-bebas text-xs tracking-wider uppercase rounded-xl transition-all inline-flex items-center justify-center gap-1.5 active:scale-95 leading-none shadow-[0_0_12px_rgba(142,140,58,0.25)] shrink-0"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth="2.5"
+                stroke="currentColor"
+                className="w-3.5 h-3.5 shrink-0 -translate-y-[1.5px]"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M12 4.5v15m7.5-7.5h-15"
+                />
+              </svg>
+              <span className="leading-none">Agregar Clase</span>
+            </button>
+          </div>
+          <p className="text-xs text-zinc-400 font-barlow mt-1">
+            Administra y agrega clases
+          </p>
         </div>
 
         {/* Listado de Clases */}
