@@ -8,6 +8,9 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png', 'robots.txt'],
+      devOptions: {
+        enabled: true,
+      },
       manifest: {
         name: 'Veltron Training Club',
         short_name: 'Veltron',
@@ -15,8 +18,10 @@ export default defineConfig({
         theme_color: '#0A0C0B',
         background_color: '#0A0C0B',
         display: 'standalone',
+        display_override: ['standalone', 'window-controls-overlay', 'minimal-ui'],
         orientation: 'portrait',
-        start_url: '/',
+        start_url: '/?mode=standalone',
+        scope: '/',
         icons: [
           {
             src: '/pwa-192x192.png',
