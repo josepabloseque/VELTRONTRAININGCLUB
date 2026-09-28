@@ -45,18 +45,7 @@ const LogoutCustomIcon: React.FC<{ className?: string }> = ({ className = 'w-5 h
   </svg>
 );
 
-const WhatsAppIcon: React.FC<{ className?: string }> = ({ className = 'w-3.5 h-3.5' }) => (
-  <svg
-    role="img"
-    viewBox="0 0 24 24"
-    xmlns="http://www.w3.org/2000/svg"
-    className={className}
-    fill="currentColor"
-  >
-    <title>WhatsApp</title>
-    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
-  </svg>
-);
+
 
 // Custom Calendar Icon solicitado (24px)
 const CalendarCustomIcon: React.FC<{ className?: string }> = ({ className = 'w-6 h-6 stroke-[1.8]' }) => (
@@ -91,6 +80,24 @@ const AccesosCustomIcon: React.FC<{ className?: string }> = ({ className = 'w-6 
     <path d="M28 27.4396C28 26.1776 29.1546 25.231 30.3922 25.4785L32.6078 25.9216C32.8667 25.9734 33.1333 25.9734 33.3922 25.9216L35.6078 25.4785C36.8454 25.231 38 26.1776 38 27.4396V32H28V27.4396Z" fill="currentColor"/>
     <path d="M33 24C35.2091 24 37 22.2091 37 20C37 17.7909 35.2091 16 33 16C30.7909 16 29 17.7909 29 20C29 22.2091 30.7909 24 33 24Z" fill="currentColor"/>
     <path fillRule="evenodd" clipRule="evenodd" d="M7 10C5.34315 10 4 11.3431 4 13V35C4 36.6569 5.34315 38 7 38H41C42.6569 38 44 36.6569 44 35V13C44 11.3431 42.6569 10 41 10H7ZM41 12H7C6.44772 12 6 12.4477 6 13V35C6 35.5523 6.44772 36 7 36H41C41.5523 36 42 35.5523 42 35V13C42 12.4477 41.5523 12 41 12Z" fill="currentColor"/>
+  </svg>
+);
+
+// Custom Notification Bell Icon
+const NotificationBellCustomIcon: React.FC<{ className?: string }> = ({ className = 'w-5 h-5' }) => (
+  <svg 
+    xmlns="http://www.w3.org/2000/svg" 
+    fill="none" 
+    viewBox="0 0 24 24" 
+    strokeWidth="1.5" 
+    stroke="currentColor" 
+    className={className}
+  >
+    <path 
+      strokeLinecap="round" 
+      strokeLinejoin="round" 
+      d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0M3.124 7.5A8.969 8.969 0 0 1 5.292 3m13.416 0a8.969 8.969 0 0 1 2.168 4.5" 
+    />
   </svg>
 );
 
@@ -311,6 +318,15 @@ const Dashboard: React.FC = () => {
   const fullName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Usuario';
   const phone = user?.user_metadata?.phone || 'No registrado';
   const birthDate = user?.user_metadata?.birth_date || '';
+
+  const isProfileIncomplete = useMemo(() => {
+    if (!user || isAdmin) return false;
+    const rawPhone = user.user_metadata?.phone;
+    const rawBirthDate = user.user_metadata?.birth_date;
+    const hasPhone = rawPhone && rawPhone !== 'No registrado' && String(rawPhone).trim().length >= 8;
+    const hasBirthDate = rawBirthDate && rawBirthDate !== 'No registrada' && String(rawBirthDate).trim().length > 0;
+    return !hasPhone || !hasBirthDate;
+  }, [user, isAdmin]);
 
   const formatPhone = (rawPhone: string) => {
     if (!rawPhone || rawPhone === 'No registrado') return 'No registrado';
@@ -552,6 +568,33 @@ const Dashboard: React.FC = () => {
         {/* Pestaña: INICIO (Exclusivo Atletas) */}
         {!isAdmin && activeTab === 'inicio' && (
           <section className="space-y-5 animate-in fade-in duration-200">
+            {/* Aviso No Invasivo: Completar Información de Perfil */}
+            {isProfileIncomplete && (
+              <button
+                type="button"
+                onClick={() => setIsEditProfileOpen(true)}
+                className="w-full bg-[#121514] border border-[#8E8C3A]/30 hover:border-[#8E8C3A]/70 rounded-2xl p-3.5 flex items-center justify-between gap-3 text-left transition-all active:scale-[0.99] group shadow-md cursor-pointer"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-9 h-9 rounded-xl bg-[#0A0C0B] border border-[#8E8C3A]/40 text-[#B5B04E] flex items-center justify-center shrink-0 shadow-inner group-hover:scale-105 transition-transform">
+                    <NotificationBellCustomIcon className="w-5 h-5 text-[#B5B04E]" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold text-zinc-200 group-hover:text-white font-barlow tracking-wide leading-tight">
+                      Aún hace falta completar información
+                    </p>
+                    <p className="text-[10px] text-zinc-400 font-barlow mt-0.5">
+                      Toca aquí para registrar tu teléfono y fecha de nacimiento
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1 text-zinc-400 group-hover:text-[#B5B04E] transition-colors shrink-0 font-barlow text-xs font-medium">
+                  <ChevronRight className="w-4 h-4" />
+                </div>
+              </button>
+            )}
+
             {/* Tarjeta 1: Asistencia Semanal / Racha */}
             {(() => {
               const now = new Date();
@@ -1009,20 +1052,6 @@ const Dashboard: React.FC = () => {
                     <span className="text-white font-medium text-xs block">
                       {formatBirthDate(birthDate)}
                     </span>
-                  </div>
-                )}
-
-                {!isActive && !isAdmin && (
-                  <div className="pt-3 border-t border-zinc-800/60">
-                    <a
-                      href="https://wa.me/"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-full py-2.5 px-3 bg-[#8E8C3A] hover:bg-[#B5B04E] text-black font-bebas text-xs tracking-wider uppercase rounded-xl transition-all flex items-center justify-center gap-1.5 active:scale-[0.98]"
-                    >
-                      <WhatsAppIcon className="w-3.5 h-3.5 shrink-0" />
-                      <span>Contactar Recepción por WhatsApp</span>
-                    </a>
                   </div>
                 )}
               </div>

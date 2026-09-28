@@ -150,11 +150,24 @@ export const ClassDetailsModal: React.FC<ClassDetailsModalProps> = ({
             </button>
           </div>
         ) : (
-          <div className="p-4 bg-[#16130D] border border-amber-500/30 rounded-xl flex items-center gap-3">
-            <Lock className="w-5 h-5 text-amber-400 shrink-0" />
-            <div className="text-xs text-zinc-300 font-barlow">
-              <span className="font-bold text-amber-400 block">Reserva Bloqueada</span>
-              Contacta a recepción para activar tu membresía y reservar cupo.
+          <div className="p-4 sm:p-5 bg-[#16130D] border border-amber-500/30 rounded-2xl flex items-center gap-4 shadow-md">
+            <svg 
+              xmlns="http://www.w3.org/2000/svg" 
+              fill="none" 
+              viewBox="0 0 24 24" 
+              strokeWidth="1.6" 
+              stroke="currentColor" 
+              className="w-7 h-7 sm:w-8 sm:h-8 text-amber-400 shrink-0"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+            </svg>
+            <div className="space-y-0.5 font-barlow">
+              <span className="font-bold text-amber-400 block text-sm sm:text-base leading-tight">
+                Reserva Bloqueada
+              </span>
+              <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed">
+                Contacta a recepción para activar tu membresía y reservar cupo.
+              </p>
             </div>
           </div>
         )}
