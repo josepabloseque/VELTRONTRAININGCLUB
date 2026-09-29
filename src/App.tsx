@@ -356,17 +356,12 @@ const Dashboard: React.FC = () => {
   };
 
   const handleSaveClass = async (newClass: TrainingClass) => {
-    // Actualización optimista local
-    const tempId = newClass.id;
-    setClasses((prev) => [newClass, ...prev]);
-
-    // Persistencia en Supabase con payload estricto
     try {
       const payload = {
         title: newClass.title,
         time: newClass.time,
         capacity: newClass.capacity,
-        date: newClass.date || new Date().toISOString().split('T')[0],
+        date: newClass.date || getLocalDateString(),
       };
 
       const { data, error } = await supabase
@@ -378,22 +373,7 @@ const Dashboard: React.FC = () => {
       if (error) {
         console.error('Error al guardar clase en Supabase:', error);
       } else if (data) {
-        // Reemplazar ID temporal por el ID real de Supabase
-        setClasses((prev) =>
-          prev.map((c) =>
-            c.id === tempId
-              ? {
-                  id: String(data.id),
-                  title: data.title,
-                  coach: data.coach || 'Coach',
-                  date: data.date,
-                  time: data.time,
-                  capacity: Number(data.capacity),
-                  bookedCount: Number(data.booked_count) || 0,
-                }
-              : c
-          )
-        );
+        await fetchSupabaseClasses();
       }
     } catch (e) {
       console.error('Error al guardar clase en Supabase:', e);

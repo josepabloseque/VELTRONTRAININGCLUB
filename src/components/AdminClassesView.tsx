@@ -52,6 +52,7 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
   const [period, setPeriod] = useState<'AM' | 'PM'>('AM');
   const [capacity, setCapacity] = useState<number | string>(12);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const todayStr = getLocalDateString();
 
@@ -85,6 +86,7 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
     setPeriod('AM');
     setCapacity(12);
     setEditingClass(null);
+    setIsSubmitting(false);
   };
 
   const handleOpenAdd = () => {
@@ -102,6 +104,7 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
     setMinute(parsed.minute);
     setPeriod(parsed.period);
     setCapacity(cls.capacity || 12);
+    setIsSubmitting(false);
     setShowForm(true);
   };
 
@@ -115,10 +118,12 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim()) return;
+    if (isSubmitting || !title.trim()) return;
 
     // Validación: No permitir guardar si el horario ya transcurrió hoy
     if (isInvalidPastToday) return;
+
+    setIsSubmitting(true);
 
     if (editingClass) {
       // Actualización de clase existente
@@ -453,15 +458,17 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
               <div className="flex gap-2 pt-2">
                 <button
                   type="submit"
-                  disabled={isInvalidPastToday}
+                  disabled={isInvalidPastToday || isSubmitting}
                   className={`flex-1 py-3 font-bebas text-base tracking-wider uppercase rounded-xl transition-all leading-none ${
-                    isInvalidPastToday
-                      ? 'bg-zinc-900 border border-zinc-800 text-zinc-500 cursor-not-allowed'
+                    isInvalidPastToday || isSubmitting
+                      ? 'bg-zinc-900 border border-zinc-800 text-zinc-500 cursor-not-allowed opacity-60'
                       : 'bg-[#8E8C3A] hover:bg-[#B5B04E] text-black shadow-[0_0_15px_rgba(142,140,58,0.25)] active:scale-[0.98]'
                   }`}
                 >
                   {isInvalidPastToday
                     ? 'Horario Pasado'
+                    : isSubmitting
+                    ? 'Guardando...'
                     : editingClass
                     ? 'Guardar Cambios'
                     : 'Guardar y Publicar Clase'}
