@@ -4,8 +4,6 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { supabase } from './lib/supabaseClient';
 import { Gatekeeper } from './components/Gatekeeper';
 import { Welcome } from './pages/Welcome';
-import { Login } from './pages/Login';
-import { Register } from './pages/Register';
 import { ResetPassword } from './pages/ResetPassword';
 import { Terms } from './pages/Terms';
 import { VeltronLogo } from './components/VeltronLogo';
@@ -1153,8 +1151,8 @@ export default function App() {
       <AuthProvider>
         <Routes>
           <Route path="/welcome" element={<Welcome />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
+          <Route path="/login" element={<Navigate to="/welcome" replace />} />
+          <Route path="/register" element={<Navigate to="/welcome" replace />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/recuperar-password" element={<ResetPassword />} />
           <Route path="/terms" element={<Terms />} />

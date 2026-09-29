@@ -1,6 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { Trash2, CheckCircle2, ChevronRight, X, Plus, Calendar as CalendarIcon } from 'lucide-react';
 import { Calendar } from './ui/Calendar';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from './ui/AlertDialog';
 import type { TrainingClass } from '../types/database';
 import { getLocalDateString, isClassPast } from '../lib/dateUtils';
 
@@ -43,6 +53,7 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
   const [showForm, setShowForm] = useState(false);
   const [showFilterCalendar, setShowFilterCalendar] = useState(false);
   const [editingClass, setEditingClass] = useState<TrainingClass | null>(null);
+  const [classToDelete, setClassToDelete] = useState<TrainingClass | null>(null);
 
   const [title, setTitle] = useState('');
   const [selectedDate, setSelectedDate] = useState<string>(getLocalDateString());
@@ -282,9 +293,7 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          if (window.confirm(`¿Seguro que deseas eliminar la clase "${item.title}" a las ${item.time}?`)) {
-                            onDeleteClass(item.id);
-                          }
+                          setClassToDelete(item);
                         }}
                         className="p-1.5 text-zinc-500 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/30 rounded-lg transition-colors"
                         title="Eliminar clase"
@@ -537,6 +546,32 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
           </div>
         </div>
       )}
+
+      {/* Diálogo de Confirmación Táctico para Eliminar Clase */}
+      <AlertDialog open={Boolean(classToDelete)} onOpenChange={(open) => !open && setClassToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminar Clase</AlertDialogTitle>
+            <AlertDialogDescription>
+              ¿Estás seguro de que deseas eliminar la clase <span className="text-white font-semibold">{classToDelete?.title}</span> de las <span className="text-[#B5B04E] font-semibold">{classToDelete?.time}</span>? Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setClassToDelete(null)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={() => {
+                if (classToDelete) {
+                  onDeleteClass(classToDelete.id);
+                  setClassToDelete(null);
+                }
+              }}
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </section>
   );
 };
