@@ -152,7 +152,7 @@ export const ClassDetailsModal: React.FC<ClassDetailsModalProps> = ({
                 </div>
               ) : attendees.length === 0 ? (
                 <div className="py-5 text-center text-xs text-zinc-500 font-barlow">
-                  Aún no hay atletas inscritos en esta clase.
+                  Aún no hay usuarios inscritos en esta clase.
                 </div>
               ) : (
                 <div className="space-y-2 max-h-56 overflow-y-auto pr-1">

@@ -665,7 +665,16 @@ const Dashboard: React.FC = () => {
 
               {(() => {
                 const todayStr = getLocalDateString();
-                const todayBookedClasses = classes.filter((c) => bookedClassIds.includes(c.id) && c.date === todayStr);
+                const todayBookedClasses = classes
+                  .filter((c) => bookedClassIds.includes(c.id) && c.date === todayStr)
+                  .slice()
+                  .sort((a, b) => {
+                    const aPast = isClassPast(a.date, a.time);
+                    const bPast = isClassPast(b.date, b.time);
+                    if (aPast && !bPast) return 1;
+                    if (!aPast && bPast) return -1;
+                    return 0;
+                  });
 
                 if (todayBookedClasses.length === 0) {
                   return (
@@ -763,7 +772,16 @@ const Dashboard: React.FC = () => {
 
         {/* Pestaña: CLASES (Exclusivo Atletas / Usuarios) */}
         {!isAdmin && activeTab === 'clases' && (() => {
-          const dayClasses = classes.filter((item) => item.date === selectedClassDate);
+          const dayClasses = classes
+            .filter((item) => item.date === selectedClassDate)
+            .slice()
+            .sort((a, b) => {
+              const aPast = isClassPast(a.date, a.time);
+              const bPast = isClassPast(b.date, b.time);
+              if (aPast && !bPast) return 1;
+              if (!aPast && bPast) return -1;
+              return 0;
+            });
           const currentSelectedDayObj = classStripDays.find((d) => d.dateStr === selectedClassDate);
           const displayHeaderDate = currentSelectedDayObj
             ? currentSelectedDayObj.formattedDisplay

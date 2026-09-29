@@ -159,9 +159,15 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
   };
 
   // Filtrado: si hay filterDate, filtra por esa fecha; si no, muestra todas
-  const filteredDayClasses = filterDate
-    ? classes.filter((c) => c.date === filterDate)
-    : classes;
+  const filteredDayClasses = (
+    filterDate ? classes.filter((c) => c.date === filterDate) : classes
+  ).slice().sort((a, b) => {
+    const aPast = isClassPast(a.date, a.time);
+    const bPast = isClassPast(b.date, b.time);
+    if (aPast && !bPast) return 1;
+    if (!aPast && bPast) return -1;
+    return 0;
+  });
 
   return (
     <section className="space-y-4">

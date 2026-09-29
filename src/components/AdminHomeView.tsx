@@ -56,7 +56,16 @@ export const AdminHomeView: React.FC<AdminHomeViewProps> = ({
   }, []);
 
   const todayStr = getLocalDateString();
-  const todayClasses = classes.filter((c) => c.date === todayStr);
+  const todayClasses = useMemo(() => {
+    const dayClasses = classes.filter((c) => c.date === todayStr);
+    return [...dayClasses].sort((a, b) => {
+      const aPast = isClassPast(a.date, a.time);
+      const bPast = isClassPast(b.date, b.time);
+      if (aPast && !bPast) return 1;
+      if (!aPast && bPast) return -1;
+      return 0;
+    });
+  }, [classes, todayStr]);
   const todayBookingsCount = todayClasses.reduce((sum, c) => sum + (c.bookedCount || 0), 0);
 
   // Cálculo de próximos cumpleaños en los siguientes 30 días
