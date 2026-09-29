@@ -321,7 +321,7 @@ export const AuthDialog: React.FC<AuthDialogProps> = ({
                     tabIndex={-1}
                     aria-label={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
                   >
-                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    {showPassword ? <Eye size={18} /> : <EyeOff size={18} />}
                   </button>
                 </div>
                 {mode === 'login' && (

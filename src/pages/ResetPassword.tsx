@@ -122,7 +122,7 @@ export const ResetPassword: React.FC = () => {
                       tabIndex={-1}
                       aria-label={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
                     >
-                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      {showPassword ? <Eye size={16} /> : <EyeOff size={16} />}
                     </button>
                   </div>
                 </div>
