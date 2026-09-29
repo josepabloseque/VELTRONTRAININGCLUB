@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Trash2, CheckCircle2, ChevronRight, X, Plus, Calendar as CalendarIcon } from 'lucide-react';
 import { Calendar } from './ui/Calendar';
 import type { TrainingClass } from '../types/database';
@@ -41,6 +41,7 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
   onDeleteClass,
 }) => {
   const [showForm, setShowForm] = useState(false);
+  const [showFilterCalendar, setShowFilterCalendar] = useState(false);
   const [editingClass, setEditingClass] = useState<TrainingClass | null>(null);
 
   const [title, setTitle] = useState('');
@@ -53,8 +54,6 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   const todayStr = getLocalDateString();
-
-  const dateInputRef = useRef<HTMLInputElement>(null);
 
   const formatDisplayDate = (dateStr: string) => {
     if (!dateStr) return '';
@@ -192,31 +191,10 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
         </div>
 
         {/* Barra de Filtro de Fecha Mínima y Elegante */}
-        <div className="relative">
-          <input
-            ref={dateInputRef}
-            type="date"
-            value={filterDate}
-            onChange={(e) => setFilterDate(e.target.value)}
-            className="absolute inset-0 opacity-0 pointer-events-none w-full h-full"
-            tabIndex={-1}
-          />
-
+        <div>
           <button
             type="button"
-            onClick={() => {
-              if (dateInputRef.current) {
-                if ('showPicker' in HTMLInputElement.prototype) {
-                  try {
-                    dateInputRef.current.showPicker();
-                  } catch {
-                    dateInputRef.current.focus();
-                  }
-                } else {
-                  dateInputRef.current.focus();
-                }
-              }
-            }}
+            onClick={() => setShowFilterCalendar(true)}
             className="w-full flex items-center justify-between p-3 bg-[#121514] hover:bg-zinc-900 border border-zinc-800/80 hover:border-zinc-700 rounded-2xl transition-all cursor-pointer active:scale-[0.99] group"
           >
             <div className="flex items-center gap-2.5">
@@ -498,6 +476,51 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* MODAL DE FILTRO POR FECHA (CALENDARIO TÁCTICO) */}
+      {showFilterCalendar && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200">
+          <div
+            className="fixed inset-0 bg-black/85 backdrop-blur-sm"
+            onClick={() => setShowFilterCalendar(false)}
+            aria-hidden="true"
+          />
+
+          <div
+            className="relative z-10 w-full max-w-md bg-[#121514] border border-[#8E8C3A]/40 rounded-2xl p-5 sm:p-6 text-white shadow-[0_20px_60px_rgba(0,0,0,0.95)]"
+            role="dialog"
+            aria-modal="true"
+          >
+            {/* Botón Cerrar (X) */}
+            <button
+              onClick={() => setShowFilterCalendar(false)}
+              className="absolute right-4 top-4 text-zinc-400 hover:text-white p-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800/80 transition-colors z-20 flex items-center justify-center"
+              aria-label="Cerrar modal"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="mb-4 pr-10">
+              <h2 className="font-bebas text-xl tracking-wide uppercase text-white leading-none">
+                Filtrar por Fecha
+              </h2>
+              <p className="text-xs text-zinc-400 font-barlow mt-1">
+                Selecciona el día para ver las clases
+              </p>
+            </div>
+
+            {/* Calendario Táctico */}
+            <div>
+              <Calendar
+                selected={filterDate}
+                onSelect={(d) => {
+                  setFilterDate(d);
+                  setShowFilterCalendar(false);
+                }}
+              />
+            </div>
           </div>
         </div>
       )}

@@ -7,6 +7,8 @@ interface GoogleLoginButtonProps {
   text?: string;
 }
 
+let isGoogleInitialized = false;
+
 export const GoogleLoginButton: React.FC<GoogleLoginButtonProps> = ({
   onSuccess,
   onError,
@@ -36,13 +38,16 @@ export const GoogleLoginButton: React.FC<GoogleLoginButtonProps> = ({
       }
     };
 
-    // Inicializar Google Identity Services cuando el script esté disponible
+    // Inicializar Google Identity Services una sola vez y renderizar el botón
     const initGoogle = () => {
       if (window.google?.accounts?.id && buttonDiv.current) {
-        window.google.accounts.id.initialize({
-          client_id: '77559589649-sdqlidg23f0jqlu2mhsn5nikc65b6dkg.apps.googleusercontent.com',
-          callback: handleCredentialResponse,
-        });
+        if (!isGoogleInitialized) {
+          window.google.accounts.id.initialize({
+            client_id: '77559589649-sdqlidg23f0jqlu2mhsn5nikc65b6dkg.apps.googleusercontent.com',
+            callback: handleCredentialResponse,
+          });
+          isGoogleInitialized = true;
+        }
 
         buttonDiv.current.innerHTML = '';
 

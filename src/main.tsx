@@ -3,6 +3,13 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import './index.css';
 
+// Silenciar logs y advertencias de terceros en producción para mantener la consola limpia
+if (import.meta.env.PROD) {
+  console.log = () => {};
+  console.warn = () => {};
+  console.info = () => {};
+}
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <App />

@@ -1005,10 +1005,14 @@ const Dashboard: React.FC = () => {
                     </span>
                     <div className="mt-2">
                       <span className={`font-mono text-sm font-bold block leading-none ${isActive ? 'text-zinc-100' : 'text-red-400'}`}>
-                        {membership?.expires_at ? new Date(membership.expires_at).toLocaleDateString('es-CR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'Sin fecha'}
+                        {isAdmin
+                          ? 'Ilimitado'
+                          : membership?.expires_at
+                          ? new Date(membership.expires_at).toLocaleDateString('es-CR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+                          : 'Sin fecha'}
                       </span>
-                      <span className={`text-[9px] font-bold uppercase tracking-wider block mt-1 ${isActive ? 'text-emerald-400' : 'text-red-400'}`}>
-                        {isActive ? 'Activo' : 'Vencido'}
+                      <span className={`text-[9px] font-bold uppercase tracking-wider block mt-1 ${isAdmin ? 'text-[#B5B04E]' : isActive ? 'text-emerald-400' : 'text-red-400'}`}>
+                        {isAdmin ? 'Administrador' : isActive ? 'Activo' : 'Vencido'}
                       </span>
                     </div>
                   </div>
@@ -1166,7 +1170,12 @@ const Dashboard: React.FC = () => {
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter
+      future={{
+        v7_startTransition: true,
+        v7_relativeSplatPath: true,
+      }}
+    >
       <AuthProvider>
         <Routes>
           <Route path="/welcome" element={<Welcome />} />

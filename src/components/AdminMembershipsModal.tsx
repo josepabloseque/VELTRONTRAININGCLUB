@@ -16,6 +16,7 @@ interface MemberRecord {
   phone: string;
   planName: string;
   status: 'active' | 'inactive' | 'expired';
+  role?: string | null;
   expiresAt: string | null;
 }
 
@@ -37,15 +38,18 @@ export const AdminMembershipsModal: React.FC<AdminMembershipsModalProps> = ({
   const fetchMemberships = async () => {
     try {
       const data = await fetchAthletesDirectory();
-      const mapped: MemberRecord[] = data.map((m) => ({
-        userId: m.user_id,
-        fullName: m.full_name || m.email?.split('@')[0] || 'Atleta',
-        email: m.email || '',
-        phone: m.phone || 'No registrado',
-        planName: m.plan_name || 'Sin plan asignado',
-        status: m.status === 'active' ? 'active' : 'inactive',
-        expiresAt: m.expires_at || null,
-      }));
+      const mapped: MemberRecord[] = data
+        .filter((m) => m.role !== 'admin')
+        .map((m) => ({
+          userId: m.user_id,
+          fullName: m.full_name || m.email?.split('@')[0] || 'Atleta',
+          email: m.email || '',
+          phone: m.phone || 'No registrado',
+          planName: m.plan_name || 'Sin plan asignado',
+          status: m.status === 'active' ? 'active' : 'inactive',
+          role: m.role || null,
+          expiresAt: m.expires_at || null,
+        }));
       setAthletes(mapped);
     } catch (err: any) {
       console.error('Error fetching memberships in AdminMembershipsModal:', err);
@@ -206,7 +210,8 @@ export const AdminMembershipsModal: React.FC<AdminMembershipsModalProps> = ({
         {/* Listado de Atletas */}
         <div className="space-y-3">
           {filteredAthletes.map((athlete) => {
-            const isAct = athlete.status === 'active';
+            const isAdminRole = athlete.role === 'admin';
+            const isAct = isAdminRole || athlete.status === 'active';
             const isUpd = updatingId === athlete.userId;
 
             return (
@@ -225,18 +230,22 @@ export const AdminMembershipsModal: React.FC<AdminMembershipsModalProps> = ({
 
                   <span
                     className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded flex items-center gap-1 ${
-                      isAct
+                      isAdminRole
+                        ? 'bg-[#8E8C3A]/20 border border-[#8E8C3A]/50 text-[#B5B04E]'
+                        : isAct
                         ? 'bg-[#3A3A1A] border border-[#8E8C3A]/50 text-[#B5B04E]'
                         : 'bg-amber-950/60 border border-amber-800/60 text-amber-400'
                     }`}
                   >
-                    {isAct ? 'Activa' : 'Inactiva'}
+                    {isAdminRole ? 'Admin' : isAct ? 'Activa' : 'Inactiva'}
                   </span>
                 </div>
 
                 <div className="pt-2 border-t border-zinc-900 flex items-center justify-between">
                   <div className="text-[11px] text-zinc-400 font-barlow">
-                    {isAct && athlete.expiresAt ? (
+                    {isAdminRole ? (
+                      <span className="text-[#B5B04E]">Acceso Total (Ilimitado)</span>
+                    ) : isAct && athlete.expiresAt ? (
                       <span>Vence: <strong className="text-zinc-200">{new Date(athlete.expiresAt).toLocaleDateString()}</strong></span>
                     ) : (
                       <span className="text-amber-400/80">Sin vigencia activa</span>

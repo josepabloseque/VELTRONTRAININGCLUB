@@ -88,24 +88,24 @@ export const Calendar: React.FC<CalendarProps> = ({
 
   return (
     <div
-      className={`w-full max-w-sm mx-auto bg-[#0A0C0B] border border-zinc-800 rounded-2xl p-3 sm:p-4 select-none ${className}`}
+      className={`w-full max-w-md mx-auto bg-[#0A0C0B] border border-zinc-800 rounded-2xl p-4 sm:p-5 select-none ${className}`}
     >
       {/* Encabezado: Flecha Izq, Mes (centro arriba) + Año (centro abajo), Flecha Der */}
-      <div className="flex items-center justify-between mb-3 px-1">
+      <div className="flex items-center justify-between mb-4 px-2">
         <button
           type="button"
           onClick={handlePrevMonth}
           aria-label="Mes anterior"
-          className="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-800/80 rounded-lg transition-colors"
+          className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800/80 rounded-xl transition-colors"
         >
-          <ChevronLeft className="w-4 h-4" />
+          <ChevronLeft className="w-5 h-5" />
         </button>
 
         <div className="flex flex-col items-center justify-center">
-          <span className="font-barlow font-bold text-sm text-white capitalize leading-tight">
+          <span className="font-barlow font-bold text-base sm:text-lg text-white capitalize leading-tight">
             {MONTH_NAMES_ES[currentMonth]}
           </span>
-          <span className="font-mono text-[11px] text-[#B5B04E] font-semibold leading-none mt-0.5">
+          <span className="font-mono text-xs text-[#B5B04E] font-bold leading-none mt-1">
             {currentYear}
           </span>
         </div>
@@ -114,18 +114,18 @@ export const Calendar: React.FC<CalendarProps> = ({
           type="button"
           onClick={handleNextMonth}
           aria-label="Mes siguiente"
-          className="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-800/80 rounded-lg transition-colors"
+          className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800/80 rounded-xl transition-colors"
         >
-          <ChevronRight className="w-4 h-4" />
+          <ChevronRight className="w-5 h-5" />
         </button>
       </div>
 
       {/* Días de la semana (L M M J V S D) */}
-      <div className="grid grid-cols-7 gap-1 mb-1.5 text-center">
+      <div className="grid grid-cols-7 gap-1.5 mb-2 text-center">
         {WEEKDAYS_ES.map((wd, index) => (
           <div
             key={index}
-            className="text-[11px] font-barlow font-semibold text-zinc-400 py-1"
+            className="text-xs font-barlow font-bold text-zinc-400 py-1 uppercase tracking-wider"
           >
             {wd}
           </div>
@@ -133,10 +133,10 @@ export const Calendar: React.FC<CalendarProps> = ({
       </div>
 
       {/* Cuadrícula de días del mes */}
-      <div className="grid grid-cols-7 gap-1 text-center">
+      <div className="grid grid-cols-7 gap-1.5 text-center">
         {/* Espacios vacíos de offset antes del primer día */}
         {Array.from({ length: firstDayWeekIndex }).map((_, index) => (
-          <div key={`offset-${index}`} className="h-8 w-full" />
+          <div key={`offset-${index}`} className="h-10 sm:h-11 w-full" />
         ))}
 
         {/* Días pertenecientes únicamente a este mes */}
@@ -156,24 +156,17 @@ export const Calendar: React.FC<CalendarProps> = ({
                   onSelect(dateStr, new Date(currentYear, currentMonth, day));
                 }
               }}
-              className={`relative h-8 w-full flex items-center justify-center rounded-lg text-xs font-mono transition-all ${
+              className={`relative h-10 sm:h-11 w-full flex items-center justify-center rounded-xl text-sm font-mono transition-all ${
                 isSelected
-                  ? 'bg-[#8E8C3A] text-black font-bold shadow-[0_0_10px_rgba(142,140,58,0.4)] scale-105 z-10'
+                  ? 'bg-[#8E8C3A] text-black font-bold shadow-[0_0_12px_rgba(142,140,58,0.4)] scale-105 z-10'
                   : isPast
                   ? 'text-zinc-600 cursor-not-allowed opacity-40'
+                  : isToday
+                  ? 'text-[#B5B04E] font-bold border border-[#8E8C3A]/50 bg-[#8E8C3A]/10'
                   : 'text-zinc-200 hover:bg-zinc-800/80 hover:text-white'
               }`}
             >
-              <span>{day}</span>
-
-              {/* Indicador de "Hoy" */}
-              {isToday && (
-                <span
-                  className={`absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full ${
-                    isSelected ? 'bg-black' : 'bg-[#B5B04E]'
-                  }`}
-                />
-              )}
+              <span className="leading-none">{day}</span>
             </button>
           );
         })}

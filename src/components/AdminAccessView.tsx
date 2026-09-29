@@ -3,6 +3,7 @@ import { Search, CheckCircle2, AlertCircle, RefreshCw, UserCheck, Phone, Mail, C
 import { supabase } from '../lib/supabaseClient';
 import { getLocalDateString } from '../lib/dateUtils';
 import { fetchAthletesDirectory } from '../services/athletes.service';
+import { useAuth } from '../context/AuthContext';
 
 const WhatsAppIcon: React.FC<{ className?: string }> = ({ className = 'w-3.5 h-3.5' }) => (
   <svg
@@ -24,6 +25,7 @@ interface MemberRecord {
   phone: string;
   planName: string;
   status: 'active' | 'inactive' | 'expired';
+  role?: string | null;
   expiresAt: string | null;
 }
 
@@ -52,6 +54,7 @@ const getDefaultEndDate = (startDateStr: string): string => {
 };
 
 export const AdminAccessView: React.FC<AdminAccessViewProps> = ({ onMembershipUpdated }) => {
+  const { user: currentUser } = useAuth();
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all');
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
@@ -64,7 +67,9 @@ export const AdminAccessView: React.FC<AdminAccessViewProps> = ({ onMembershipUp
   const [loading, setLoading] = useState(false);
 
   // Inicializa con el estado cacheado en memoria (100% dinámico)
-  const [athletes, setAthletes] = useState<MemberRecord[]>(memoryAthletesCache);
+  const [athletes, setAthletes] = useState<MemberRecord[]>(() =>
+    memoryAthletesCache.filter((a) => a.role !== 'admin' && a.userId !== currentUser?.id)
+  );
 
   useEffect(() => {
     if (selectedAthlete) {
@@ -82,15 +87,18 @@ export const AdminAccessView: React.FC<AdminAccessViewProps> = ({ onMembershipUp
     setErrorMsg(null);
     try {
       const data = await fetchAthletesDirectory();
-      const mapped: MemberRecord[] = data.map((m) => ({
-        userId: m.user_id,
-        fullName: m.full_name || m.email?.split('@')[0] || 'Atleta',
-        email: m.email || '',
-        phone: m.phone || 'No registrado',
-        planName: m.plan_name || 'Sin plan asignado',
-        status: m.status === 'active' ? 'active' : 'inactive',
-        expiresAt: m.expires_at || null,
-      }));
+      const mapped: MemberRecord[] = data
+        .filter((m) => m.role !== 'admin' && m.user_id !== currentUser?.id)
+        .map((m) => ({
+          userId: m.user_id,
+          fullName: m.full_name || m.email?.split('@')[0] || 'Atleta',
+          email: m.email || '',
+          phone: m.phone || 'No registrado',
+          planName: m.plan_name || 'Sin plan asignado',
+          status: m.status === 'active' ? 'active' : 'inactive',
+          role: m.role || null,
+          expiresAt: m.expires_at || null,
+        }));
       setAthletes(mapped);
       memoryAthletesCache = mapped;
 
@@ -176,6 +184,8 @@ export const AdminAccessView: React.FC<AdminAccessViewProps> = ({ onMembershipUp
   }, [search, filterStatus]);
 
   const filteredAthletes = athletes.filter((a) => {
+    if (a.role === 'admin' || a.userId === currentUser?.id) return false;
+
     const matchesSearch =
       a.fullName.toLowerCase().includes(search.toLowerCase()) ||
       a.email.toLowerCase().includes(search.toLowerCase()) ||
@@ -273,8 +283,9 @@ export const AdminAccessView: React.FC<AdminAccessViewProps> = ({ onMembershipUp
           </div>
         ) : (
           displayedAthletes.map((athlete) => {
-            const isExpired = athlete.expiresAt ? new Date(athlete.expiresAt).getTime() <= Date.now() : true;
-            const isMemberActive = athlete.status === 'active' && !isExpired;
+            const isAdminRole = athlete.role === 'admin';
+            const isExpired = isAdminRole ? false : (athlete.expiresAt ? new Date(athlete.expiresAt).getTime() <= Date.now() : true);
+            const isMemberActive = isAdminRole || (athlete.status === 'active' && !isExpired);
 
             return (
               <div
@@ -312,12 +323,14 @@ export const AdminAccessView: React.FC<AdminAccessViewProps> = ({ onMembershipUp
 
                   <span
                     className={`text-[9px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${
-                      isMemberActive
+                      isAdminRole
+                        ? 'bg-[#8E8C3A]/20 border-[#8E8C3A]/50 text-[#B5B04E]'
+                        : isMemberActive
                         ? 'bg-emerald-950/60 border-emerald-800/60 text-emerald-400'
                         : 'bg-red-950/60 border-red-800/60 text-red-400'
                     }`}
                   >
-                    {isMemberActive ? 'Activo' : 'Vencido'}
+                    {isAdminRole ? 'Admin' : isMemberActive ? 'Activo' : 'Vencido'}
                   </span>
                 </div>
 
@@ -325,7 +338,11 @@ export const AdminAccessView: React.FC<AdminAccessViewProps> = ({ onMembershipUp
                   <div className="flex items-center gap-1.5 text-zinc-400">
                     <span className="text-zinc-500 text-[10px] uppercase font-bold">Vencimiento:</span>
                     <span className="text-zinc-200 font-mono font-medium">
-                      {athlete.expiresAt ? new Date(athlete.expiresAt).toLocaleDateString() : 'Sin fecha'}
+                      {isAdminRole
+                        ? 'Ilimitado (Admin)'
+                        : athlete.expiresAt
+                        ? new Date(athlete.expiresAt).toLocaleDateString()
+                        : 'Sin fecha'}
                     </span>
                   </div>
 
@@ -355,8 +372,9 @@ export const AdminAccessView: React.FC<AdminAccessViewProps> = ({ onMembershipUp
 
       {/* Modal de Gestión de Membresía del Atleta */}
       {selectedAthlete && (() => {
-        const selectedIsExpired = selectedAthlete.expiresAt ? new Date(selectedAthlete.expiresAt).getTime() <= Date.now() : true;
-        const selectedIsActive = selectedAthlete.status === 'active' && !selectedIsExpired;
+        const selectedIsAdmin = selectedAthlete.role === 'admin';
+        const selectedIsExpired = selectedIsAdmin ? false : (selectedAthlete.expiresAt ? new Date(selectedAthlete.expiresAt).getTime() <= Date.now() : true);
+        const selectedIsActive = selectedIsAdmin || (selectedAthlete.status === 'active' && !selectedIsExpired);
 
         return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -379,12 +397,14 @@ export const AdminAccessView: React.FC<AdminAccessViewProps> = ({ onMembershipUp
                   <div className="flex items-center gap-2 mt-1.5">
                     <span
                       className={`text-[9px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${
-                        selectedIsActive
+                        selectedIsAdmin
+                          ? 'bg-[#8E8C3A]/20 border-[#8E8C3A]/50 text-[#B5B04E]'
+                          : selectedIsActive
                           ? 'bg-emerald-950/60 border-emerald-800/60 text-emerald-400'
                           : 'bg-red-950/60 border-red-800/60 text-red-400'
                       }`}
                     >
-                      {selectedIsActive ? 'Membresía Activa' : 'Membresía Vencida'}
+                      {selectedIsAdmin ? 'Administrador' : selectedIsActive ? 'Membresía Activa' : 'Membresía Vencida'}
                     </span>
                   </div>
                 </div>
@@ -438,7 +458,11 @@ export const AdminAccessView: React.FC<AdminAccessViewProps> = ({ onMembershipUp
                   Vencimiento
                 </span>
                 <span className="text-zinc-200 font-mono font-bold text-xs block">
-                  {selectedAthlete.expiresAt ? new Date(selectedAthlete.expiresAt).toLocaleDateString() : 'Sin fecha asignada'}
+                  {selectedIsAdmin
+                    ? 'Ilimitado (Administrador)'
+                    : selectedAthlete.expiresAt
+                    ? new Date(selectedAthlete.expiresAt).toLocaleDateString()
+                    : 'Sin fecha asignada'}
                 </span>
               </div>
             </div>

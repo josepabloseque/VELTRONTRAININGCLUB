@@ -6,6 +6,7 @@ export interface AthleteDirectoryItem {
   birth_date?: string | null;
   plan_name: string;
   status: 'active' | 'inactive' | 'canceled' | string;
+  role?: string | null;
   expires_at: string | null;
   registered_at: string;
 }
