@@ -159,34 +159,10 @@ const Dashboard: React.FC = () => {
   }, []);
 
   // Clases registradas (100% dinámicas desde Supabase)
-  const [classes, setClasses] = useState<TrainingClass[]>(() => {
-    try {
-      const saved = localStorage.getItem('veltron_training_classes');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
-          return parsed.filter((c: any) => !['class-1', 'class-2', 'class-3'].includes(c.id));
-        }
-      }
-    } catch (e) {
-      console.error('Error cargando clases guardadas:', e);
-    }
-    return [];
-  });
+  const [classes, setClasses] = useState<TrainingClass[]>([]);
 
   // Reservas del usuario actual (100% dinámicas desde Supabase)
-  const [bookedClassIds, setBookedClassIds] = useState<string[]>(() => {
-    try {
-      const saved = localStorage.getItem('veltron_booked_classes');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) return parsed;
-      }
-    } catch (e) {
-      console.error('Error cargando reservas guardadas:', e);
-    }
-    return [];
-  });
+  const [bookedClassIds, setBookedClassIds] = useState<string[]>([]);
 
   const [completedClassesCount, setCompletedClassesCount] = useState<number>(0);
   const [bookedDates, setBookedDates] = useState<string[]>([]);
