@@ -65,6 +65,16 @@ export const AdminMembershipsModal: React.FC<AdminMembershipsModalProps> = ({
     }
   }, [isOpen]);
 
+  // Auto-ocultar mensaje de confirmación tras 5 segundos
+  useEffect(() => {
+    if (successMsg) {
+      const timer = setTimeout(() => {
+        setSuccessMsg(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [successMsg]);
+
   if (!isOpen) return null;
 
   const handleActivate = async (athlete: MemberRecord, days: number = 30) => {

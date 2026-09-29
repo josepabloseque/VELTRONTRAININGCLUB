@@ -44,7 +44,7 @@ export const AlertDialogContent: React.FC<{
       onClick={() => setOpen(false)}
     >
       <div
-        className={`w-full max-w-[340px] sm:max-w-sm bg-[#121514] border border-[#8E8C3A]/50 rounded-2xl p-5 sm:p-6 text-white shadow-[0_15px_40px_rgba(0,0,0,0.95)] space-y-3.5 select-none animate-in zoom-in-95 duration-150 ${className}`}
+        className={`w-full max-w-[360px] sm:max-w-md bg-[#121514] border border-[#8E8C3A]/50 rounded-3xl p-6 sm:p-7 text-white shadow-[0_20px_50px_rgba(0,0,0,0.95)] space-y-4 select-none animate-in zoom-in-95 duration-150 ${className}`}
         onClick={(e) => e.stopPropagation()}
       >
         {children}
@@ -57,7 +57,7 @@ export const AlertDialogHeader: React.FC<{
   children: React.ReactNode;
   className?: string;
 }> = ({ children, className = '' }) => (
-  <div className={`space-y-1.5 text-left ${className}`}>{children}</div>
+  <div className={`space-y-2 text-left ${className}`}>{children}</div>
 );
 
 export const AlertDialogTitle: React.FC<{
@@ -82,7 +82,7 @@ export const AlertDialogFooter: React.FC<{
   children: React.ReactNode;
   className?: string;
 }> = ({ children, className = '' }) => (
-  <div className={`flex items-center justify-end gap-2.5 pt-2 ${className}`}>
+  <div className={`flex items-center justify-end gap-3 pt-3 ${className}`}>
     {children}
   </div>
 );
@@ -100,7 +100,7 @@ export const AlertDialogCancel: React.FC<{
         onClick?.();
         setOpen(false);
       }}
-      className={`px-4 py-2 bg-zinc-800/90 hover:bg-zinc-700 text-zinc-300 hover:text-white rounded-xl text-xs sm:text-sm font-barlow font-medium transition-all active:scale-95 ${className}`}
+      className={`px-5 py-2.5 bg-zinc-800/90 hover:bg-zinc-700 text-zinc-300 hover:text-white rounded-xl text-xs sm:text-sm font-barlow font-medium transition-all active:scale-95 ${className}`}
     >
       {children}
     </button>
@@ -126,7 +126,7 @@ export const AlertDialogAction: React.FC<{
         onClick?.();
         setOpen(false);
       }}
-      className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-barlow transition-all active:scale-95 ${variantStyles} ${className}`}
+      className={`px-5 py-2.5 rounded-xl text-xs sm:text-sm font-barlow transition-all active:scale-95 ${variantStyles} ${className}`}
     >
       {children}
     </button>

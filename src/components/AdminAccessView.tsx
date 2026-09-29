@@ -82,6 +82,16 @@ export const AdminAccessView: React.FC<AdminAccessViewProps> = ({ onMembershipUp
     };
   }, [selectedAthlete]);
 
+  // Auto-ocultar mensaje de confirmación tras 5 segundos
+  useEffect(() => {
+    if (successMsg) {
+      const timer = setTimeout(() => {
+        setSuccessMsg(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [successMsg]);
+
   const fetchMemberships = async () => {
     setLoading(true);
     setErrorMsg(null);

@@ -553,7 +553,7 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
           <AlertDialogHeader>
             <AlertDialogTitle>Eliminar Clase</AlertDialogTitle>
             <AlertDialogDescription>
-              ¿Estás seguro de que deseas eliminar la clase <span className="text-white font-semibold">{classToDelete?.title}</span> de las <span className="text-[#B5B04E] font-semibold">{classToDelete?.time}</span>? Esta acción no se puede deshacer.
+              ¿Estás seguro de que deseas eliminar la clase <span className="text-white font-semibold">{classToDelete?.title}</span> de las <span className="text-[#B5B04E] font-semibold">{classToDelete?.time}{classToDelete ? ` - ${formatDisplayDate(classToDelete.date)}` : ''}</span>? Esta acción no se puede deshacer.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
