@@ -104,7 +104,7 @@ export const AdminClassModal: React.FC<AdminClassModalProps> = ({
                 type="text"
                 required
                 value={coach}
-                onChange={(e) => setCoach(e.target.value)}
+                onChange={(e) => setCoach(e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s'-]/g, ''))}
                 placeholder=""
                 className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2.5 px-3.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#8E8C3A] transition-all font-barlow"
               />

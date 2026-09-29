@@ -87,11 +87,11 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
 
   return (
     <div 
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm animate-in fade-in duration-200"
+      className="fixed inset-0 z-[100] overflow-y-auto p-4 bg-black/85 backdrop-blur-sm animate-in fade-in duration-200 flex flex-col items-center justify-center min-h-full"
       onClick={onClose}
     >
       <div 
-        className="w-full max-w-sm bg-[#121514] border border-[#8E8C3A]/40 rounded-2xl p-5 shadow-2xl space-y-4 relative"
+        className="w-full max-w-sm bg-[#121514] border border-[#8E8C3A]/40 rounded-2xl p-5 shadow-2xl space-y-4 relative my-auto max-h-[calc(100dvh-2rem)] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -139,7 +139,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                 type="text"
                 required
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) => setName(e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s'-]/g, ''))}
                 placeholder="Tu nombre y apellido"
                 className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2.5 pl-9 pr-3 text-xs text-white placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-[#8E8C3A] transition-all"
               />

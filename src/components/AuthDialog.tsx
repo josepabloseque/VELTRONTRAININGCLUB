@@ -123,7 +123,7 @@ export const AuthDialog: React.FC<AuthDialogProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+    <div className="fixed inset-0 z-50 overflow-y-auto p-4 sm:p-6 flex items-center justify-center min-h-full">
       {/* Dark Backdrop Overlay (blur isolated from modal content so it never blurs text) */}
       <div 
         className="fixed inset-0 bg-black/85 backdrop-blur-sm transition-opacity"
@@ -133,7 +133,7 @@ export const AuthDialog: React.FC<AuthDialogProps> = ({
 
       {/* Dialog Container - crisp vector rendering without transform scaling */}
       <div 
-        className="relative z-10 w-full max-w-md max-h-[92vh] overflow-y-auto bg-[#121514] border border-[#8E8C3A]/50 rounded-2xl p-6 sm:p-7 text-white shadow-[0_20px_60px_rgba(0,0,0,0.95)]"
+        className="relative z-10 w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto my-auto bg-[#121514] border border-[#8E8C3A]/50 rounded-2xl p-6 sm:p-7 text-white shadow-[0_20px_60px_rgba(0,0,0,0.95)]"
         role="dialog"
         aria-modal="true"
         style={{
@@ -235,7 +235,7 @@ export const AuthDialog: React.FC<AuthDialogProps> = ({
                   type="text"
                   required
                   value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
+                  onChange={(e) => setFullName(e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s'-]/g, ''))}
                   className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2.5 px-3.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#8E8C3A] transition-all font-barlow font-normal"
                 />
               </div>
