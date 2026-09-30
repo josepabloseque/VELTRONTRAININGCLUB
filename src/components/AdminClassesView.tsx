@@ -12,7 +12,7 @@ import {
   AlertDialogAction,
 } from './ui/AlertDialog';
 import type { TrainingClass } from '../types/database';
-import { getLocalDateString, isClassPast } from '../lib/dateUtils';
+import { getLocalDateString, isClassPast, compareClassesChronological } from '../lib/dateUtils';
 
 interface AdminClassesViewProps {
   classes: TrainingClass[];
@@ -55,7 +55,7 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
   const [editingClass, setEditingClass] = useState<TrainingClass | null>(null);
   const [classToDelete, setClassToDelete] = useState<TrainingClass | null>(null);
 
-  const [title, setTitle] = useState('');
+  const [title, setTitle] = useState('Clases Dirigidas');
   const [selectedDate, setSelectedDate] = useState<string>(getLocalDateString());
   const [filterDate, setFilterDate] = useState<string>(getLocalDateString());
   const [hour, setHour] = useState('6');
@@ -90,7 +90,7 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
   }, [showForm]);
 
   const resetFormFields = () => {
-    setTitle('');
+    setTitle('Clases Dirigidas');
     setSelectedDate(filterDate || getLocalDateString());
     setHour('6');
     setMinute('00');
@@ -172,13 +172,7 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
   // Filtrado: si hay filterDate, filtra por esa fecha; si no, muestra todas
   const filteredDayClasses = (
     filterDate ? classes.filter((c) => c.date === filterDate) : classes
-  ).slice().sort((a, b) => {
-    const aPast = isClassPast(a.date, a.time);
-    const bPast = isClassPast(b.date, b.time);
-    if (aPast && !bPast) return 1;
-    if (!aPast && bPast) return -1;
-    return 0;
-  });
+  ).slice().sort(compareClassesChronological);
 
   return (
     <section className="space-y-4">

@@ -4,7 +4,7 @@ import { SevenSegmentDisplay } from './ui/SevenSegmentNumber';
 import { fetchAthletesDirectory } from '../services/athletes.service';
 import type { AthleteDirectoryItem } from '../types/athletes';
 import type { TrainingClass } from '../types/database';
-import { getLocalDateString, isClassPast } from '../lib/dateUtils';
+import { getLocalDateString, isClassPast, compareClassesChronological } from '../lib/dateUtils';
 
 interface AdminHomeViewProps {
   classes?: TrainingClass[];
@@ -58,13 +58,7 @@ export const AdminHomeView: React.FC<AdminHomeViewProps> = ({
   const todayStr = getLocalDateString();
   const todayClasses = useMemo(() => {
     const dayClasses = classes.filter((c) => c.date === todayStr);
-    return [...dayClasses].sort((a, b) => {
-      const aPast = isClassPast(a.date, a.time);
-      const bPast = isClassPast(b.date, b.time);
-      if (aPast && !bPast) return 1;
-      if (!aPast && bPast) return -1;
-      return 0;
-    });
+    return [...dayClasses].sort(compareClassesChronological);
   }, [classes, todayStr]);
   const todayBookingsCount = todayClasses.reduce((sum, c) => sum + (c.bookedCount || 0), 0);
 

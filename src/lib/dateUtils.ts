@@ -53,3 +53,39 @@ export const isClassPast = (dateStr: string, timeStr: string): boolean => {
     return false;
   }
 };
+
+/**
+ * Retorna los minutos totales desde las 00:00 (0 a 1439).
+ */
+export const getClassTimeMinutes = (timeStr: string): number => {
+  const { hour, minute } = parseClassTime(timeStr);
+  return hour * 60 + minute;
+};
+
+/**
+ * Comparador canónico y cronológico para listas de clases:
+ * 1. Clases activas (no finalizadas) van primero; clases finalizadas (isPast) van al final.
+ * 2. Entre clases con el mismo estado, se ordenan cronológicamente por hora (minutos del día).
+ */
+export const compareClassesChronological = (
+  a: { date: string; time: string },
+  b: { date: string; time: string }
+): number => {
+  const aPast = isClassPast(a.date, a.time);
+  const bPast = isClassPast(b.date, b.time);
+
+  // 1. Clases activas primero, pasadas al final
+  if (aPast && !bPast) return 1;
+  if (!aPast && bPast) return -1;
+
+  // 2. Si son de fechas distintas, ordenar por fecha
+  if (a.date !== b.date) {
+    return a.date.localeCompare(b.date);
+  }
+
+  // 3. Ordenar cronológicamente por horario exacto (minutos)
+  const aMin = getClassTimeMinutes(a.time);
+  const bMin = getClassTimeMinutes(b.time);
+  return aMin - bMin;
+};
+

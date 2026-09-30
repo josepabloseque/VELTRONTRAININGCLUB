@@ -99,7 +99,7 @@ const NotificationBellCustomIcon: React.FC<{ className?: string }> = ({ classNam
   </svg>
 );
 
-import { getLocalDateString, isClassPast } from './lib/dateUtils';
+import { getLocalDateString, isClassPast, compareClassesChronological } from './lib/dateUtils';
 
 const formatBadgeDateTime = (dateStr: string, timeStr: string) => {
   if (!dateStr) return timeStr;
@@ -186,10 +186,11 @@ const Dashboard: React.FC = () => {
           capacity: Number(item.capacity) || 12,
           bookedCount: Number(item.booked_count) || 0,
         }));
-        setClasses(mapped);
+        const sorted = mapped.slice().sort(compareClassesChronological);
+        setClasses(sorted);
         setSelectedClass((prev) => {
           if (!prev) return null;
-          const fresh = mapped.find((c) => c.id === prev.id);
+          const fresh = sorted.find((c) => c.id === prev.id);
           return fresh ? { ...prev, bookedCount: fresh.bookedCount } : prev;
         });
       }
@@ -247,7 +248,7 @@ const Dashboard: React.FC = () => {
     fetchSupabaseClasses();
     fetchUserBookings();
     fetchUserMetrics();
-  }, [user]);
+  }, [user, isAdmin]);
 
   // 2. SUSCRIPCIÓN REALTIME OPTIMIZADA:
   useEffect(() => {
@@ -642,13 +643,7 @@ const Dashboard: React.FC = () => {
                 const todayBookedClasses = classes
                   .filter((c) => bookedClassIds.includes(c.id) && c.date === todayStr)
                   .slice()
-                  .sort((a, b) => {
-                    const aPast = isClassPast(a.date, a.time);
-                    const bPast = isClassPast(b.date, b.time);
-                    if (aPast && !bPast) return 1;
-                    if (!aPast && bPast) return -1;
-                    return 0;
-                  });
+                  .sort(compareClassesChronological);
 
                 if (todayBookedClasses.length === 0) {
                   return (
@@ -749,13 +744,7 @@ const Dashboard: React.FC = () => {
           const dayClasses = classes
             .filter((item) => item.date === selectedClassDate)
             .slice()
-            .sort((a, b) => {
-              const aPast = isClassPast(a.date, a.time);
-              const bPast = isClassPast(b.date, b.time);
-              if (aPast && !bPast) return 1;
-              if (!aPast && bPast) return -1;
-              return 0;
-            });
+            .sort(compareClassesChronological);
           const currentSelectedDayObj = classStripDays.find((d) => d.dateStr === selectedClassDate);
           const displayHeaderDate = currentSelectedDayObj
             ? currentSelectedDayObj.formattedDisplay
