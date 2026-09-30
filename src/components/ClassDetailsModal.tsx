@@ -46,11 +46,14 @@ export const ClassDetailsModal: React.FC<ClassDetailsModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
     }
     return () => {
       document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
     };
   }, [isOpen]);
 
@@ -78,8 +81,9 @@ export const ClassDetailsModal: React.FC<ClassDetailsModalProps> = ({
 
   if (!isOpen || !selectedClass) return null;
 
+  const isFreeTraining = selectedClass.title.toLowerCase().includes('libre') || (selectedClass.capacity || 0) >= 900;
   const isPast = isClassPast(selectedClass.date, selectedClass.time);
-  const isFull = (selectedClass.bookedCount || 0) >= selectedClass.capacity && !isBooked;
+  const isFull = !isFreeTraining && (selectedClass.bookedCount || 0) >= selectedClass.capacity && !isBooked;
   const todayStr = getLocalDateString();
   const isToday = selectedClass.date === todayStr;
 
@@ -120,16 +124,18 @@ export const ClassDetailsModal: React.FC<ClassDetailsModalProps> = ({
             <span className="font-semibold tracking-wide text-zinc-200">{selectedClass.time}</span>
           </div>
 
-          {/* Cupos / Inscritos Micro-Badge */}
-          <div className="inline-flex items-center gap-2 px-3.5 py-2 bg-zinc-900/90 border border-zinc-800/80 rounded-xl text-xs font-mono text-zinc-300 shadow-sm">
-            <Users className="w-3.5 h-3.5 text-[#B5B04E]" />
-            <div className="flex items-center gap-1">
-              <span className={`font-bold ${(selectedClass.bookedCount || 0) >= selectedClass.capacity ? 'text-red-400' : 'text-[#B5B04E]'}`}>
-                {selectedClass.bookedCount || 0}
-              </span>
-              <span className="text-zinc-400 font-normal">/ {selectedClass.capacity}</span>
+          {/* Cupos Micro-Badge solo para clases dirigidas */}
+          {!isFreeTraining && (
+            <div className="inline-flex items-center gap-2 px-3.5 py-2 bg-zinc-900/90 border border-zinc-800/80 rounded-xl text-xs font-mono text-zinc-300 shadow-sm">
+              <Users className="w-3.5 h-3.5 text-[#B5B04E]" />
+              <div className="flex items-center gap-1">
+                <span className={`font-bold ${isFull ? 'text-red-400' : 'text-[#B5B04E]'}`}>
+                  {selectedClass.bookedCount || 0}
+                </span>
+                <span className="text-zinc-400 font-normal">/ {selectedClass.capacity}</span>
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Action button / Admin View */}
@@ -142,7 +148,7 @@ export const ClassDetailsModal: React.FC<ClassDetailsModalProps> = ({
                   Lista de Inscritos
                 </span>
                 <span className="text-xs font-mono font-bold text-zinc-400">
-                  {selectedClass.bookedCount || attendees.length} / {selectedClass.capacity}
+                  {selectedClass.bookedCount || attendees.length}{!isFreeTraining ? ` / ${selectedClass.capacity}` : ''}
                 </span>
               </div>
 
@@ -179,13 +185,27 @@ export const ClassDetailsModal: React.FC<ClassDetailsModalProps> = ({
           </div>
         ) : isPast ? (
           <div className="w-full py-4 bg-zinc-900 border border-zinc-800 text-zinc-500 font-bebas text-lg tracking-wider uppercase rounded-xl flex items-center justify-center gap-2 cursor-not-allowed leading-none">
-            <span>Clase Finalizada</span>
+            <span>{isFreeTraining ? 'Horario Finalizado' : 'Clase Finalizada'}</span>
           </div>
         ) : isActive ? (
           <div className="space-y-2">
             {hasOtherBookingOnDate && !isBooked && (
-              <div className="p-3 bg-amber-950/40 border border-amber-500/40 rounded-xl text-center text-xs text-amber-300 font-barlow font-medium">
-                Ya tienes otra clase agendada para este día. Debes cancelarla antes de agendar este horario.
+              <div className="p-4 sm:p-5 bg-[#121514] border border-amber-500/20 rounded-2xl flex flex-col items-center justify-center text-center gap-2.5 shadow-sm">
+                <div className="w-10 h-10 rounded-full bg-amber-400/10 border border-amber-400/20 flex items-center justify-center text-amber-300/80 shrink-0">
+                  <svg 
+                    xmlns="http://www.w3.org/2000/svg" 
+                    fill="none" 
+                    viewBox="0 0 24 24" 
+                    strokeWidth="1.5" 
+                    stroke="currentColor" 
+                    className="w-5 h-5 text-amber-300/80"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                  </svg>
+                </div>
+                <p className="text-xs sm:text-sm text-zinc-300 font-barlow font-normal leading-relaxed max-w-xs">
+                  Ya tienes una clase agendada para este día. Cancélala primero si deseas reservar este horario.
+                </p>
               </div>
             )}
 

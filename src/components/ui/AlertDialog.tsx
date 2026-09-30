@@ -1,4 +1,5 @@
 import React, { createContext, useContext } from 'react';
+import { createPortal } from 'react-dom';
 
 interface AlertDialogProps {
   open?: boolean;
@@ -23,6 +24,20 @@ export const AlertDialog: React.FC<AlertDialogProps> = ({
     onOpenChange?.(val);
   };
 
+  React.useEffect(() => {
+    if (open) {
+      document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+    };
+  }, [open]);
+
   return (
     <AlertDialogContext.Provider value={{ open, setOpen }}>
       {children}
@@ -38,18 +53,21 @@ export const AlertDialogContent: React.FC<{
 
   if (!open) return null;
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-[130] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150"
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm animate-in fade-in duration-150 touch-none overscroll-none"
       onClick={() => setOpen(false)}
+      onTouchMove={(e) => e.preventDefault()}
     >
       <div
-        className={`w-full max-w-[360px] sm:max-w-md bg-[#121514] border border-[#8E8C3A]/50 rounded-3xl p-6 sm:p-7 text-white shadow-[0_20px_50px_rgba(0,0,0,0.95)] space-y-4 select-none animate-in zoom-in-95 duration-150 ${className}`}
+        className={`w-full max-w-[360px] sm:max-w-md bg-[#121514] border border-[#8E8C3A]/50 rounded-3xl p-6 sm:p-7 text-white shadow-[0_20px_50px_rgba(0,0,0,0.95)] space-y-4 select-none animate-in zoom-in-95 duration-150 overscroll-contain ${className}`}
         onClick={(e) => e.stopPropagation()}
+        onTouchMove={(e) => e.stopPropagation()}
       >
         {children}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
@@ -64,7 +82,7 @@ export const AlertDialogTitle: React.FC<{
   children: React.ReactNode;
   className?: string;
 }> = ({ children, className = '' }) => (
-  <h3 className={`font-bebas text-xl sm:text-2xl uppercase tracking-wide text-white leading-none ${className}`}>
+  <h3 className={`font-barlow font-bold text-lg sm:text-xl text-white tracking-tight leading-tight ${className}`}>
     {children}
   </h3>
 );
@@ -73,7 +91,7 @@ export const AlertDialogDescription: React.FC<{
   children: React.ReactNode;
   className?: string;
 }> = ({ children, className = '' }) => (
-  <p className={`font-barlow text-xs sm:text-sm text-zinc-300 leading-relaxed ${className}`}>
+  <p className={`font-barlow text-sm sm:text-[15px] text-zinc-200 leading-relaxed ${className}`}>
     {children}
   </p>
 );
@@ -100,7 +118,7 @@ export const AlertDialogCancel: React.FC<{
         onClick?.();
         setOpen(false);
       }}
-      className={`px-5 py-2.5 bg-zinc-800/90 hover:bg-zinc-700 text-zinc-300 hover:text-white rounded-xl text-xs sm:text-sm font-barlow font-medium transition-all active:scale-95 ${className}`}
+      className={`px-5 py-2.5 bg-zinc-800/90 hover:bg-zinc-700 text-zinc-200 hover:text-white rounded-xl text-sm sm:text-base font-barlow font-medium transition-all active:scale-95 cursor-pointer ${className}`}
     >
       {children}
     </button>
@@ -126,7 +144,7 @@ export const AlertDialogAction: React.FC<{
         onClick?.();
         setOpen(false);
       }}
-      className={`px-5 py-2.5 rounded-xl text-xs sm:text-sm font-barlow transition-all active:scale-95 ${variantStyles} ${className}`}
+      className={`px-5 py-2.5 rounded-xl text-sm sm:text-base font-barlow transition-all active:scale-95 cursor-pointer ${variantStyles} ${className}`}
     >
       {children}
     </button>

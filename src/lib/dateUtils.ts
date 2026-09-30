@@ -30,8 +30,17 @@ export const parseClassTime = (timeStr: string): { hour: number; minute: number 
   return { hour, minute };
 };
 
+export const parseClassEndTime = (timeStr: string): { hour: number; minute: number } => {
+  if (timeStr.includes('-')) {
+    const parts = timeStr.split('-');
+    return parseClassTime(parts[parts.length - 1].trim());
+  }
+  return parseClassTime(timeStr);
+};
+
 /**
- * Determina si una clase ya inició o ya transcurrió en el tiempo (al minuto exacto).
+ * Determina si una clase o bloque ya finalizó en el tiempo (al minuto exacto).
+ * Si es un rango de horario (ej. "6:00 AM - 11:00 AM"), se evalúa contra la hora final (11:00 AM).
  */
 export const isClassPast = (dateStr: string, timeStr: string): boolean => {
   try {
@@ -42,8 +51,8 @@ export const isClassPast = (dateStr: string, timeStr: string): boolean => {
     // Si la fecha es futura, no ha finalizado
     if (dateStr > todayStr) return false;
 
-    // Si es hoy, comparar hora y minutos exactos
-    const { hour, minute } = parseClassTime(timeStr);
+    // Si es hoy, comparar contra la hora de finalización
+    const { hour, minute } = parseClassEndTime(timeStr);
     const [y, mon, d] = dateStr.split('-').map(Number);
     const classDateTime = new Date(y, mon - 1, d, hour, minute, 0, 0);
 

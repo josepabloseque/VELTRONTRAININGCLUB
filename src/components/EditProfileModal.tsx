@@ -29,6 +29,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
       setName(initialName);
       setPhone(initialPhone === 'No registrado' ? '' : initialPhone);
       setBirthDate(initialBirthDate);
@@ -36,9 +37,11 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
       setSuccess(false);
     } else {
       document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
     }
     return () => {
       document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
     };
   }, [isOpen, initialName, initialPhone, initialBirthDate]);
 

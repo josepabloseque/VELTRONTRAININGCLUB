@@ -62,7 +62,16 @@ export const AdminMembershipsModal: React.FC<AdminMembershipsModalProps> = ({
       fetchMemberships();
       setSuccessMsg(null);
       setErrorMsg(null);
+      document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
     }
+    return () => {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+    };
   }, [isOpen]);
 
   // Auto-ocultar mensaje de confirmación tras 5 segundos

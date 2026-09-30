@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Search, CheckCircle2, AlertCircle, RefreshCw, UserCheck, Phone, Mail, ChevronRight, ChevronDown, X } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { getLocalDateString } from '../lib/dateUtils';
@@ -209,6 +210,20 @@ export const AdminAccessView: React.FC<AdminAccessViewProps> = ({ onMembershipUp
     return true;
   });
 
+  useEffect(() => {
+    if (selectedAthlete) {
+      document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+    };
+  }, [selectedAthlete]);
+
   const displayedAthletes = filteredAthletes.slice(0, visibleCount);
   const hasMore = visibleCount < filteredAthletes.length;
 
@@ -315,24 +330,24 @@ export const AdminAccessView: React.FC<AdminAccessViewProps> = ({ onMembershipUp
                 className="bg-[#121514] border border-zinc-800 rounded-2xl p-4 transition-all cursor-pointer active:scale-[0.99] space-y-2.5 shadow-sm"
               >
                 <div className="flex justify-between items-start gap-2">
-                  <div>
-                    <h4 className="text-sm font-bold text-white font-barlow">
+                  <div className="min-w-0 flex-1">
+                    <h4 className="text-sm font-bold text-white font-barlow truncate" title={athlete.fullName}>
                       {athlete.fullName}
                     </h4>
                     <div className="flex flex-col gap-0.5 mt-1 text-[11px] text-zinc-300 font-barlow">
-                      <span className="flex items-center gap-1.5">
-                        <Mail className="w-3 h-3 text-[#B5B04E]" />
-                        {athlete.email}
+                      <span className="flex items-center gap-1.5 truncate">
+                        <Mail className="w-3 h-3 text-[#B5B04E] shrink-0" />
+                        <span className="truncate">{athlete.email}</span>
                       </span>
                       <span className="flex items-center gap-1.5">
-                        <Phone className="w-3 h-3 text-[#B5B04E]" />
-                        {athlete.phone}
+                        <Phone className="w-3 h-3 text-[#B5B04E] shrink-0" />
+                        <span>{athlete.phone}</span>
                       </span>
                     </div>
                   </div>
 
                   <span
-                    className={`text-[9px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${
+                    className={`text-[9px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border shrink-0 ${
                       isAdminRole
                         ? 'bg-[#8E8C3A]/20 border-[#8E8C3A]/50 text-[#B5B04E]'
                         : isMemberActive
@@ -386,47 +401,43 @@ export const AdminAccessView: React.FC<AdminAccessViewProps> = ({ onMembershipUp
         const selectedIsExpired = selectedIsAdmin ? false : (selectedAthlete.expiresAt ? new Date(selectedAthlete.expiresAt).getTime() <= Date.now() : true);
         const selectedIsActive = selectedIsAdmin || (selectedAthlete.status === 'active' && !selectedIsExpired);
 
-        return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        return createPortal(
+        <div 
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-4 touch-none overscroll-none"
+          onTouchMove={(e) => {
+            if (e.target === e.currentTarget) e.preventDefault();
+          }}
+        >
           <div
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm"
+            className="fixed inset-0 bg-black/85 backdrop-blur-sm"
             onClick={() => setSelectedAthlete(null)}
+            onTouchMove={(e) => e.preventDefault()}
           />
 
-          <div className="relative w-full max-w-md bg-[#121514] border border-zinc-800 rounded-2xl p-6 sm:p-7 shadow-2xl space-y-6 z-10 max-h-[90vh] overflow-y-auto">
-            {/* Header del Modal */}
-            <div className="flex justify-between items-start pb-4 border-b border-zinc-800/80">
-              <div className="flex items-center gap-3.5">
-                <div className="w-12 h-12 rounded-full bg-[#1A1F1B] border border-[#8E8C3A]/40 flex items-center justify-center text-[#B5B04E] font-bebas text-xl shrink-0">
-                  {selectedAthlete.fullName.charAt(0).toUpperCase()}
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-white font-barlow leading-tight">
-                    {selectedAthlete.fullName}
-                  </h3>
-                  <div className="flex items-center gap-2 mt-1.5">
-                    <span
-                      className={`text-[9px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${
-                        selectedIsAdmin
-                          ? 'bg-[#8E8C3A]/20 border-[#8E8C3A]/50 text-[#B5B04E]'
-                          : selectedIsActive
-                          ? 'bg-emerald-950/60 border-emerald-800/60 text-emerald-400'
-                          : 'bg-red-950/60 border-red-800/60 text-red-400'
-                      }`}
-                    >
-                      {selectedIsAdmin ? 'Administrador' : selectedIsActive ? 'Membresía Activa' : 'Membresía Vencida'}
-                    </span>
-                  </div>
-                </div>
-              </div>
+          <div 
+            className="relative w-full max-w-md bg-[#121514] border border-zinc-800 rounded-2xl p-5 sm:p-6 shadow-2xl space-y-5 z-10 max-h-[90vh] overflow-y-auto overscroll-contain"
+            onTouchMove={(e) => e.stopPropagation()}
+          >
+            {/* Botón Cerrar (X) anclado en esquina */}
+            <button
+              onClick={() => setSelectedAthlete(null)}
+              className="absolute right-4 top-4 sm:right-5 sm:top-5 p-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700 transition-colors z-20 cursor-pointer"
+              title="Cerrar modal"
+              aria-label="Cerrar modal"
+            >
+              <X className="w-4 h-4" />
+            </button>
 
-              <button
-                onClick={() => setSelectedAthlete(null)}
-                className="p-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700 transition-colors"
-                title="Cerrar modal"
-              >
-                <X className="w-4 h-4" />
-              </button>
+            {/* Header del Modal con nombre en un solo renglón */}
+            <div className="flex items-center gap-2.5 pb-4 border-b border-zinc-800/80 pr-8">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#1A1F1B] border border-[#8E8C3A]/40 flex items-center justify-center text-[#B5B04E] font-bebas text-lg shrink-0">
+                {selectedAthlete.fullName.charAt(0).toUpperCase()}
+              </div>
+              <div className="min-w-0 flex-1">
+                <h3 className="text-sm sm:text-base font-bold text-white font-barlow leading-tight whitespace-nowrap">
+                  {selectedAthlete.fullName}
+                </h3>
+              </div>
             </div>
 
             {/* Alertas dentro del modal */}
@@ -463,16 +474,30 @@ export const AdminAccessView: React.FC<AdminAccessViewProps> = ({ onMembershipUp
                 </span>
               </div>
 
-              <div className="pt-2.5 border-t border-zinc-800/60">
-                <span className="text-[10px] uppercase tracking-wider text-zinc-400 font-semibold block mb-0.5">
-                  Vencimiento
-                </span>
-                <span className="text-zinc-200 font-mono font-bold text-xs block">
-                  {selectedIsAdmin
-                    ? 'Ilimitado (Administrador)'
-                    : selectedAthlete.expiresAt
-                    ? new Date(selectedAthlete.expiresAt).toLocaleDateString()
-                    : 'Sin fecha asignada'}
+              <div className="pt-2.5 border-t border-zinc-800/60 flex items-center justify-between gap-2">
+                <div>
+                  <span className="text-[10px] uppercase tracking-wider text-zinc-400 font-semibold block mb-0.5">
+                    Vencimiento
+                  </span>
+                  <span className="text-zinc-200 font-mono font-bold text-xs block">
+                    {selectedIsAdmin
+                      ? 'Ilimitado (Administrador)'
+                      : selectedAthlete.expiresAt
+                      ? new Date(selectedAthlete.expiresAt).toLocaleDateString()
+                      : 'Sin fecha asignada'}
+                  </span>
+                </div>
+
+                <span
+                  className={`text-[9px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border shrink-0 ${
+                    selectedIsAdmin
+                      ? 'bg-[#8E8C3A]/20 border-[#8E8C3A]/50 text-[#B5B04E]'
+                      : selectedIsActive
+                      ? 'bg-emerald-950/60 border-emerald-800/60 text-emerald-400'
+                      : 'bg-red-950/60 border-red-800/60 text-red-400'
+                  }`}
+                >
+                  {selectedIsAdmin ? 'Administrador' : selectedIsActive ? 'Membresía Activa' : 'Membresía Vencida'}
                 </span>
               </div>
             </div>
@@ -539,7 +564,8 @@ export const AdminAccessView: React.FC<AdminAccessViewProps> = ({ onMembershipUp
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
         );
       })()}
     </section>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Trash2, CheckCircle2, ChevronRight, X, Plus, Calendar as CalendarIcon } from 'lucide-react';
 import { Calendar } from './ui/Calendar';
 import {
@@ -79,15 +80,18 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
   };
 
   useEffect(() => {
-    if (showForm) {
+    if (showForm || showFilterCalendar || classToDelete) {
       document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
     }
     return () => {
       document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
     };
-  }, [showForm]);
+  }, [showForm, showFilterCalendar, classToDelete]);
 
   const resetFormFields = () => {
     setTitle('Clases Dirigidas');
@@ -138,25 +142,27 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
 
     if (editingClass) {
       // Actualización de clase existente
+      const isFree = title.toLowerCase().includes('libre') || (editingClass.capacity || 0) >= 900;
       const updated: TrainingClass = {
         ...editingClass,
         title: title.trim(),
         date: selectedDate,
         time: formattedTime,
-        capacity: Number(capacity) || 12,
+        capacity: isFree ? 999 : Number(capacity) || 12,
       };
 
       onUpdateClass(updated);
       setSuccessMsg(`Clase "${title}" actualizada correctamente`);
     } else {
       // Creación de nueva clase
+      const isFree = title.toLowerCase().includes('libre');
       const newClass: TrainingClass = {
         id: `class-${Date.now()}`,
         title: title.trim(),
         coach: 'Coach Veltron',
         date: selectedDate,
         time: formattedTime,
-        capacity: Number(capacity) || 12,
+        capacity: isFree ? 999 : Number(capacity) || 12,
         bookedCount: 0,
       };
 
@@ -173,6 +179,13 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
   const filteredDayClasses = (
     filterDate ? classes.filter((c) => c.date === filterDate) : classes
   ).slice().sort(compareClassesChronological);
+
+  const freeClasses = filteredDayClasses.filter(
+    (c) => c.title.toLowerCase().includes('libre') || (c.capacity || 0) >= 900
+  );
+  const guidedClasses = filteredDayClasses.filter(
+    (c) => !c.title.toLowerCase().includes('libre') && (c.capacity || 0) < 900
+  );
 
   return (
     <section className="space-y-4">
@@ -201,9 +214,6 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
               <span className="leading-none">Agregar Clase</span>
             </button>
           </div>
-          <p className="text-xs text-zinc-400 font-barlow mt-1">
-            Administra y agrega clases
-          </p>
         </div>
 
         {/* Barra de Filtro de Fecha Mínima y Elegante */}
@@ -231,82 +241,143 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
         </div>
 
         {/* Listado de Clases Filtradas por Día */}
-        <div className="space-y-2.5">
-          {filteredDayClasses.length === 0 ? (
-            <div className="p-6 text-center bg-[#121514] rounded-2xl border border-zinc-800/80">
-              <p className="text-zinc-400 text-xs font-barlow font-medium">
-                No hay clases programadas para esta fecha.
-              </p>
-            </div>
-          ) : (
-            filteredDayClasses.map((item) => {
-              const isFull = (item.bookedCount || 0) >= item.capacity;
-              const isCurrentlyEditing = editingClass?.id === item.id;
-              const isPast = isClassPast(item.date, item.time);
+        {filteredDayClasses.length === 0 ? (
+          <div className="p-6 text-center bg-[#121514] rounded-2xl border border-zinc-800/80">
+            <p className="text-zinc-400 text-xs font-barlow font-medium">
+              No hay actividades programadas para esta fecha.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {/* Grid de 2 Columnas para Entrenamiento Libre en Admin */}
+            {freeClasses.length > 0 && (
+              <div className="grid grid-cols-2 gap-2.5">
+                {freeClasses.map((item) => {
+                  const isCurrentlyEditing = editingClass?.id === item.id;
+                  const isPast = isClassPast(item.date, item.time);
 
-              return (
-                <div
-                  key={item.id}
-                  onClick={() => handleStartEdit(item)}
-                  className={`border rounded-2xl p-4 transition-all group shadow-sm backdrop-blur-sm cursor-pointer active:scale-[0.99] ${
-                    isCurrentlyEditing
-                      ? 'bg-zinc-900 border-[#8E8C3A]'
-                      : isPast
-                      ? 'bg-zinc-900/30 border-zinc-800/60 opacity-60'
-                      : 'bg-[#121514] hover:bg-zinc-900/90 border-zinc-800 hover:border-zinc-700'
-                  }`}
-                >
-                  <div className="flex justify-between items-start gap-2 mb-2">
-                    <div className="flex-1 min-w-0 pr-1">
-                      <h3 className={`text-sm font-bold font-barlow truncate ${isPast ? 'text-zinc-500' : 'text-white group-hover:text-[#B5B04E] transition-colors'}`}>
-                        {item.title}
-                      </h3>
-                    </div>
+                  return (
+                    <div
+                      key={item.id}
+                      onClick={() => handleStartEdit(item)}
+                      className={`border rounded-2xl p-3 sm:p-3.5 transition-all group shadow-sm flex flex-col justify-between cursor-pointer active:scale-[0.99] ${
+                        isCurrentlyEditing
+                          ? 'bg-zinc-900 border-[#8E8C3A]'
+                          : isPast
+                          ? 'bg-zinc-900/30 border-zinc-800/60 opacity-60'
+                          : 'bg-[#121514] hover:bg-zinc-900/90 border-zinc-800 hover:border-zinc-700'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-1 mb-2">
+                        <h3 className={`text-xs font-semibold font-barlow tracking-wide truncate ${isPast ? 'text-zinc-500' : 'text-white group-hover:text-[#B5B04E] transition-colors'}`}>
+                          {item.title}
+                        </h3>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setClassToDelete(item);
+                            }}
+                            className="p-1 text-zinc-500 hover:text-red-400 hover:bg-red-500/10 rounded-md transition-colors"
+                            title="Eliminar horario"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
 
-                    <span className="text-xs font-mono bg-[#0A0C0B] border border-zinc-800 text-zinc-300 px-2.5 py-1 rounded-lg shrink-0">
-                      {item.time}
-                    </span>
-                  </div>
-
-                  <div className="pt-2.5 mt-2.5 border-t border-zinc-800/80 flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 text-xs font-barlow">
-                      <span className="text-zinc-500 font-medium">Inscritos:</span>
-                      <div className="flex items-baseline font-mono font-bold">
-                        <span className={`text-base ${isPast ? 'text-zinc-500' : isFull ? 'text-red-400' : 'text-[#B5B04E]'}`}>
-                          {item.bookedCount || 0}
+                      <div className="space-y-2">
+                        <span className="text-xs sm:text-[13px] font-mono font-semibold bg-[#0A0C0B] border border-zinc-800 text-zinc-200 px-2 py-1 rounded-lg block text-center">
+                          {item.time}
                         </span>
-                        <span className="text-xs text-zinc-500 ml-0.5 font-normal">
-                          /{item.capacity}
-                        </span>
+
+                        <div className="flex items-center justify-end pt-1.5 border-t border-zinc-800/60">
+                          <div className="flex items-center gap-0.5 text-zinc-400 group-hover:text-[#B5B04E] transition-colors text-[10px] font-semibold uppercase tracking-wider font-barlow">
+                            <span>Editar</span>
+                            <ChevronRight className="w-3 h-3" />
+                          </div>
+                        </div>
                       </div>
                     </div>
+                  );
+                })}
+              </div>
+            )}
 
-                    <div className="flex items-center gap-2.5">
-                      {/* Botón Eliminar rápido */}
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setClassToDelete(item);
-                        }}
-                        className="p-1.5 text-zinc-500 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/30 rounded-lg transition-colors"
-                        title="Eliminar clase"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+            {/* Listado Vertical de Clases Dirigidas */}
+            {guidedClasses.length > 0 && (
+              <div className="space-y-2.5">
+                {guidedClasses.map((item) => {
+                  const isFull = (item.bookedCount || 0) >= item.capacity;
+                  const isCurrentlyEditing = editingClass?.id === item.id;
+                  const isPast = isClassPast(item.date, item.time);
 
-                      {/* Acción Editar */}
-                      <div className="flex items-center gap-1 text-zinc-400 group-hover:text-[#B5B04E] transition-colors text-[10px] font-semibold uppercase tracking-wider font-barlow">
-                        <span>Editar</span>
-                        <ChevronRight className="w-3.5 h-3.5" />
+                  return (
+                    <div
+                      key={item.id}
+                      onClick={() => handleStartEdit(item)}
+                      className={`border rounded-2xl p-4 transition-all group shadow-sm backdrop-blur-sm cursor-pointer active:scale-[0.99] ${
+                        isCurrentlyEditing
+                          ? 'bg-zinc-900 border-[#8E8C3A]'
+                          : isPast
+                          ? 'bg-zinc-900/30 border-zinc-800/60 opacity-60'
+                          : 'bg-[#121514] hover:bg-zinc-900/90 border-zinc-800 hover:border-zinc-700'
+                      }`}
+                    >
+                      <div className="flex justify-between items-start gap-2 mb-2">
+                        <div className="flex-1 min-w-0 pr-1">
+                          <h3 className={`text-sm font-bold font-barlow truncate ${isPast ? 'text-zinc-500' : 'text-white group-hover:text-[#B5B04E] transition-colors'}`}>
+                            {item.title}
+                          </h3>
+                        </div>
+
+                        <span className="text-xs font-mono bg-[#0A0C0B] border border-zinc-800 text-zinc-300 px-2.5 py-1 rounded-lg shrink-0">
+                          {item.time}
+                        </span>
+                      </div>
+
+                      <div className="pt-2.5 mt-2.5 border-t border-zinc-800/80 flex items-center justify-between">
+                        <div className="flex items-center gap-1.5 text-xs font-barlow">
+                          <span className="text-zinc-500 font-medium">Inscritos:</span>
+                          <div className="flex items-baseline font-mono font-bold">
+                            <span className={`text-base ${isPast ? 'text-zinc-500' : isFull ? 'text-red-400' : 'text-[#B5B04E]'}`}>
+                              {item.bookedCount || 0}
+                            </span>
+                            <span className="text-xs text-zinc-500 ml-0.5 font-normal">
+                              /{item.capacity}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2.5">
+                          {/* Botón Eliminar rápido */}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setClassToDelete(item);
+                            }}
+                            className="p-1.5 text-zinc-500 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/30 rounded-lg transition-colors"
+                            title="Eliminar clase"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+
+                          {/* Acción Editar */}
+                          <div className="flex items-center gap-1 text-zinc-400 group-hover:text-[#B5B04E] transition-colors text-[10px] font-semibold uppercase tracking-wider font-barlow">
+                            <span>Editar</span>
+                            <ChevronRight className="w-3.5 h-3.5" />
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </div>
-              );
-            })
-          )}
-        </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* MODAL FLOTANTE CENTRADO (AGREGAR / EDITAR CLASE) */}
@@ -371,97 +442,105 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
               </div>
 
               {/* Horario Selector Dividido y Cupos */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Horario: Hora, Minutos, AM/PM */}
-                <div className="space-y-1.5">
-                  <label className="block text-[11px] uppercase tracking-wider text-zinc-300 font-semibold font-barlow">
-                    Horario ({hour}:{minute} {period})
-                  </label>
-                  <div className="grid grid-cols-3 gap-1.5">
-                    {/* Hora sin ceros iniciales */}
-                    <select
-                      value={hour}
-                      onChange={(e) => setHour(e.target.value)}
-                      className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2 px-2 text-base sm:text-xs text-white focus:outline-none transition-colors font-mono text-center"
-                      title="Selecciona la hora"
-                    >
-                      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((h) => (
-                        <option key={h} value={String(h)}>
-                          {h}
-                        </option>
-                      ))}
-                    </select>
+              {(() => {
+                const isFormFreeTraining = title.toLowerCase().includes('libre') || (editingClass && (editingClass.capacity || 0) >= 900) || Number(capacity) >= 900;
 
-                    {/* Minutos */}
-                    <select
-                      value={minute}
-                      onChange={(e) => setMinute(e.target.value)}
-                      className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2 px-2 text-base sm:text-xs text-white focus:outline-none transition-colors font-mono text-center"
-                      title="Selecciona los minutos"
-                    >
-                      {['00', '15', '30', '45'].map((m) => (
-                        <option key={m} value={m}>
-                          :{m}
-                        </option>
-                      ))}
-                    </select>
+                return (
+                  <div className={`grid gap-4 ${isFormFreeTraining ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2'}`}>
+                    {/* Horario: Hora, Minutos, AM/PM */}
+                    <div className="space-y-1.5">
+                      <label className="block text-[11px] uppercase tracking-wider text-zinc-300 font-semibold font-barlow">
+                        Horario ({hour}:{minute} {period})
+                      </label>
+                      <div className="grid grid-cols-3 gap-1.5">
+                        {/* Hora sin ceros iniciales */}
+                        <select
+                          value={hour}
+                          onChange={(e) => setHour(e.target.value)}
+                          className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2 px-2 text-base sm:text-xs text-white focus:outline-none transition-colors font-mono text-center"
+                          title="Selecciona la hora"
+                        >
+                          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((h) => (
+                            <option key={h} value={String(h)}>
+                              {h}
+                            </option>
+                          ))}
+                        </select>
 
-                    {/* Toggle AM / PM */}
-                    <div className="flex rounded-xl bg-[#0A0C0B] border border-zinc-800 p-0.5">
-                      <button
-                        type="button"
-                        onClick={() => setPeriod('AM')}
-                        className={`flex-1 rounded-lg text-xs font-mono font-bold transition-all py-1.5 ${
-                          period === 'AM'
-                            ? 'bg-[#8E8C3A] text-black shadow-sm'
-                            : 'text-zinc-400 hover:text-white'
-                        }`}
-                      >
-                        AM
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setPeriod('PM')}
-                        className={`flex-1 rounded-lg text-xs font-mono font-bold transition-all py-1.5 ${
-                          period === 'PM'
-                            ? 'bg-[#8E8C3A] text-black shadow-sm'
-                            : 'text-zinc-400 hover:text-white'
-                        }`}
-                      >
-                        PM
-                      </button>
+                        {/* Minutos */}
+                        <select
+                          value={minute}
+                          onChange={(e) => setMinute(e.target.value)}
+                          className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2 px-2 text-base sm:text-xs text-white focus:outline-none transition-colors font-mono text-center"
+                          title="Selecciona los minutos"
+                        >
+                          {['00', '15', '30', '45'].map((m) => (
+                            <option key={m} value={m}>
+                              :{m}
+                            </option>
+                          ))}
+                        </select>
+
+                        {/* Toggle AM / PM */}
+                        <div className="flex rounded-xl bg-[#0A0C0B] border border-zinc-800 p-0.5">
+                          <button
+                            type="button"
+                            onClick={() => setPeriod('AM')}
+                            className={`flex-1 rounded-lg text-xs font-mono font-bold transition-all py-1.5 ${
+                              period === 'AM'
+                                ? 'bg-[#8E8C3A] text-black shadow-sm'
+                                : 'text-zinc-400 hover:text-white'
+                            }`}
+                          >
+                            AM
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setPeriod('PM')}
+                            className={`flex-1 rounded-lg text-xs font-mono font-bold transition-all py-1.5 ${
+                              period === 'PM'
+                                ? 'bg-[#8E8C3A] text-black shadow-sm'
+                                : 'text-zinc-400 hover:text-white'
+                            }`}
+                          >
+                            PM
+                          </button>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
 
-                {/* Cupos */}
-                <div className="space-y-1.5">
-                  <label className="block text-[11px] uppercase tracking-wider text-zinc-300 font-semibold font-barlow">
-                    Cupos Máximos
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="50"
-                    value={capacity}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      if (val === '') {
-                        setCapacity('');
-                      } else {
-                        const num = parseInt(val, 10);
-                        setCapacity(isNaN(num) ? '' : num);
-                      }
-                    }}
-                    onBlur={() => {
-                      if (capacity === '' || Number(capacity) < 1) {
-                        setCapacity(12);
-                      }
-                    }}
-                    className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2 px-3 text-center text-base sm:text-xs font-mono text-white focus:outline-none transition-colors"
-                  />
-                </div>
-              </div>
+                    {/* Cupos (solo para clases dirigidas) */}
+                    {!isFormFreeTraining && (
+                      <div className="space-y-1.5">
+                        <label className="block text-[11px] uppercase tracking-wider text-zinc-300 font-semibold font-barlow">
+                          Cupos Máximos
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="50"
+                          value={capacity}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (val === '') {
+                              setCapacity('');
+                            } else {
+                              const num = parseInt(val, 10);
+                              setCapacity(isNaN(num) ? '' : num);
+                            }
+                          }}
+                          onBlur={() => {
+                            if (capacity === '' || Number(capacity) < 1) {
+                              setCapacity(12);
+                            }
+                          }}
+                          className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2 px-3 text-center text-base sm:text-xs font-mono text-white focus:outline-none transition-colors"
+                        />
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* Botones de acción del formulario */}
               <div className="flex gap-2 pt-2">
@@ -496,8 +575,8 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
         </div>
       )}
       {/* MODAL DE FILTRO POR FECHA (CALENDARIO TÁCTICO) */}
-      {showFilterCalendar && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200">
+      {showFilterCalendar && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200">
           <div
             className="fixed inset-0 bg-black/85 backdrop-blur-sm"
             onClick={() => setShowFilterCalendar(false)}
@@ -538,20 +617,78 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
               />
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {/* Diálogo de Confirmación Táctico para Eliminar Clase */}
+      {/* Diálogo de Confirmación Táctico para Eliminar Clase / Entrenamiento Libre */}
       <AlertDialog open={Boolean(classToDelete)} onOpenChange={(open) => !open && setClassToDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Eliminar Clase</AlertDialogTitle>
-            <AlertDialogDescription>
-              ¿Estás seguro de que deseas eliminar la clase <span className="text-white font-semibold">{classToDelete?.title}</span> de las <span className="text-[#B5B04E] font-semibold">{classToDelete?.time}{classToDelete ? ` - ${formatDisplayDate(classToDelete.date)}` : ''}</span>? Esta acción no se puede deshacer.
-            </AlertDialogDescription>
+        <AlertDialogContent className="space-y-4">
+          <AlertDialogHeader className="space-y-3">
+            {(() => {
+              const isFreeToDelete = Boolean(
+                classToDelete &&
+                  (classToDelete.title.toLowerCase().includes('libre') || (classToDelete.capacity || 0) >= 900)
+              );
+
+              return (
+                <>
+                  <AlertDialogTitle className="normal-case font-barlow text-lg sm:text-xl font-bold tracking-normal text-white">
+                    {isFreeToDelete ? '¿Deseas eliminar este entrenamiento?' : '¿Deseas eliminar esta clase?'}
+                  </AlertDialogTitle>
+
+                  {/* Tarjeta idéntica a la original sin basurero ni botón editar */}
+                  {isFreeToDelete ? (
+                    <div className="p-3.5 bg-[#121514] border border-zinc-800 rounded-2xl space-y-2 text-left shadow-sm">
+                      <div className="flex items-center justify-between gap-2">
+                        <h3 className="text-xs sm:text-sm font-semibold font-barlow tracking-wide text-white truncate">
+                          {classToDelete?.title}
+                        </h3>
+                      </div>
+                      <div>
+                        <span className="text-xs sm:text-[13px] font-mono font-semibold bg-[#0A0C0B] border border-zinc-800 text-zinc-200 px-2 py-1 rounded-lg block text-center">
+                          {classToDelete?.time}
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-4 bg-[#121514] border border-zinc-800 rounded-2xl text-left shadow-sm">
+                      <div className="flex justify-between items-center gap-2 mb-2">
+                        <h3 className="text-sm font-bold font-barlow text-white truncate">
+                          {classToDelete?.title}
+                        </h3>
+                        <span className="text-xs font-mono bg-[#0A0C0B] border border-zinc-800 text-zinc-300 px-2.5 py-1 rounded-lg shrink-0">
+                          {classToDelete?.time}
+                        </span>
+                      </div>
+
+                      <div className="pt-2.5 mt-2.5 border-t border-zinc-800/80 flex items-center justify-between">
+                        <div className="flex items-center gap-1.5 text-xs font-barlow">
+                          <span className="text-zinc-500 font-medium">Inscritos:</span>
+                          <div className="flex items-baseline font-mono font-bold">
+                            <span className="text-base text-[#B5B04E]">
+                              {classToDelete?.bookedCount || 0}
+                            </span>
+                            <span className="text-xs text-zinc-500 ml-0.5 font-normal">
+                              /{classToDelete?.capacity}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <AlertDialogDescription className="text-xs sm:text-sm text-zinc-400 font-barlow">
+                    Esta acción no se puede deshacer.
+                  </AlertDialogDescription>
+                </>
+              );
+            })()}
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setClassToDelete(null)}>Cancelar</AlertDialogCancel>
+          <AlertDialogFooter className="flex items-center gap-3 pt-2 w-full">
+            <AlertDialogCancel onClick={() => setClassToDelete(null)} className="flex-1 py-3 text-center">
+              Cancelar
+            </AlertDialogCancel>
             <AlertDialogAction
               variant="destructive"
               onClick={() => {
@@ -560,6 +697,7 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
                   setClassToDelete(null);
                 }
               }}
+              className="flex-1 py-3 text-center"
             >
               Eliminar
             </AlertDialogAction>

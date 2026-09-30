@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Dumbbell, Sparkles } from 'lucide-react';
 import type { TrainingClass } from '../types/database';
 
@@ -17,6 +17,20 @@ export const AdminClassModal: React.FC<AdminClassModalProps> = ({
   const [coach, setCoach] = useState('');
   const [time, setTime] = useState('06:00 AM');
   const [capacity, setCapacity] = useState<number | string>(12);
+
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+    };
+  }, [isOpen]);
 
   if (!isOpen) return null;
 

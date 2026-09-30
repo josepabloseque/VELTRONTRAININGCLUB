@@ -164,32 +164,37 @@ export const AdminHomeView: React.FC<AdminHomeViewProps> = ({
             Sin cumpleaños en los próximos 30 días
           </div>
         ) : (
-          <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-none snap-x">
-            {upcomingBirthdays.map(({ item, nextAge, daysUntil, isToday, isTomorrow, dateFormatted }) => (
-              <div
-                key={item.user_id}
-                className={`shrink-0 w-[calc(50%-0.375rem)] p-3 rounded-2xl border transition-all snap-start select-none flex flex-col justify-between ${
-                  isToday
-                    ? 'bg-neutral-900 border-[#8E8C3A]/60 shadow-[0_0_12px_rgba(181,176,78,0.15)]'
-                    : 'bg-neutral-900 border-neutral-800'
-                }`}
-              >
-                <span className="text-xs font-bold text-white truncate font-barlow leading-tight block">
-                  {item.full_name}
-                </span>
-                <div className="mt-1 flex items-center gap-1.5 text-[11px] font-barlow text-neutral-400 truncate leading-none">
-                  <span className="font-mono">{dateFormatted}</span>
-                  <span>•</span>
-                  <span>
-                    {isToday
-                      ? `¡Hoy! (${nextAge} años)`
-                      : isTomorrow
-                      ? 'Mañana'
-                      : `En ${daysUntil} días`}
+          <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-none no-scrollbar snap-x">
+            {upcomingBirthdays.map(({ item, nextAge, daysUntil, isToday, isTomorrow, dateFormatted }) => {
+              const nameParts = (item.full_name || '').trim().split(/\s+/);
+              const displayName = nameParts.length >= 4 ? nameParts.slice(0, 3).join(' ') : item.full_name;
+
+              return (
+                <div
+                  key={item.user_id}
+                  className={`shrink-0 w-[calc(50%-0.375rem)] p-3 rounded-2xl border transition-all snap-start select-none flex flex-col justify-between shadow-sm ${
+                    isToday
+                      ? 'bg-[#121514] border-[#8E8C3A]/60 shadow-[0_0_12px_rgba(181,176,78,0.15)]'
+                      : 'bg-[#121514] border-neutral-800'
+                  }`}
+                >
+                  <span className="text-xs font-semibold text-zinc-200 font-barlow tracking-wide truncate block" title={item.full_name}>
+                    {displayName}
                   </span>
+                  <div className="mt-1.5 flex items-center gap-1.5 text-[11px] font-barlow text-neutral-400 leading-none">
+                    <span className="font-mono">{dateFormatted}</span>
+                    <span>•</span>
+                    <span>
+                      {isToday
+                        ? `¡Hoy! (${nextAge} años)`
+                        : isTomorrow
+                        ? 'Mañana'
+                        : `En ${daysUntil} días`}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
@@ -221,56 +226,104 @@ export const AdminHomeView: React.FC<AdminHomeViewProps> = ({
               </span>
             </div>
           </button>
-        ) : (
-          <div className="space-y-2.5">
-            {todayClasses.map((item) => {
-              const isFull = (item.bookedCount || 0) >= item.capacity;
-              const isPast = isClassPast(item.date, item.time);
+        ) : (() => {
+          const freeClasses = todayClasses.filter(
+            (c) => c.title.toLowerCase().includes('libre') || (c.capacity || 0) >= 900
+          );
+          const guidedClasses = todayClasses.filter(
+            (c) => !c.title.toLowerCase().includes('libre') && (c.capacity || 0) < 900
+          );
 
-              return (
-                <div
-                  key={item.id}
-                  onClick={() => onSelectClass?.(item)}
-                  className={`border rounded-2xl p-4 transition-all cursor-pointer group shadow-sm backdrop-blur-sm ${
-                    isPast
-                      ? 'bg-neutral-900/40 border-neutral-800/60 opacity-80'
-                      : 'bg-[#121514] hover:bg-neutral-900/90 border-neutral-800 hover:border-neutral-700'
-                  }`}
-                >
-                  <div className="flex justify-between items-start gap-2 mb-2">
-                    <div className="flex-1 min-w-0 pr-1">
-                      <h4 className={`text-sm font-semibold font-barlow tracking-wide truncate ${isPast ? 'text-neutral-500' : 'text-zinc-200 group-hover:text-[#B5B04E] transition-colors'}`}>
-                        {item.title}
-                      </h4>
-                    </div>
-                    <span className="text-xs font-mono bg-[#0A0C0B] border border-neutral-800 text-neutral-200 px-2.5 py-1 rounded-lg shrink-0">
-                      {item.time}
-                    </span>
-                  </div>
+          return (
+            <div className="space-y-3">
+              {/* Grid de 2 Columnas para Entrenamiento Libre en Inicio Admin */}
+              {freeClasses.length > 0 && (
+                <div className="grid grid-cols-2 gap-2.5">
+                  {freeClasses.map((item) => {
+                    const isPast = isClassPast(item.date, item.time);
 
-                  <div className="pt-2.5 mt-2.5 border-t border-neutral-800/60 flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 text-xs font-barlow">
-                      <span className="text-neutral-400 font-medium">Inscritos:</span>
-                      <div className="flex items-baseline font-mono font-bold">
-                        <span className={`text-base ${isPast ? 'text-neutral-500' : isFull ? 'text-red-400' : 'text-[#B5B04E]'}`}>
-                          {item.bookedCount || 0}
-                        </span>
-                        <span className="text-xs text-neutral-400 ml-0.5 font-normal">
-                          /{item.capacity}
-                        </span>
+                    return (
+                      <div
+                        key={item.id}
+                        onClick={() => onSelectClass?.(item)}
+                        className={`border rounded-2xl p-3 sm:p-3.5 transition-all cursor-pointer group shadow-sm flex flex-col justify-between ${
+                          isPast
+                            ? 'bg-neutral-900/40 border-neutral-800/60 opacity-80'
+                            : 'bg-[#121514] hover:bg-neutral-900/90 border-neutral-800 hover:border-neutral-700'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-1 mb-2">
+                          <h4 className={`text-xs font-semibold font-barlow tracking-wide truncate ${isPast ? 'text-neutral-500' : 'text-zinc-200 group-hover:text-[#B5B04E] transition-colors'}`}>
+                            {item.title}
+                          </h4>
+                          <ChevronRight className="w-3.5 h-3.5 text-neutral-500 group-hover:text-white transition-colors shrink-0" />
+                        </div>
+
+                        <div>
+                          <span className="text-xs sm:text-[13px] font-mono font-semibold bg-[#0A0C0B] border border-neutral-800 text-neutral-200 px-2 py-1 rounded-lg block text-center">
+                            {item.time}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-
-                    <span className="text-xs text-neutral-400 group-hover:text-white flex items-center gap-1 font-barlow font-medium">
-                      <span>Ver</span>
-                      <ChevronRight className="w-3.5 h-3.5" />
-                    </span>
-                  </div>
+                    );
+                  })}
                 </div>
-              );
-            })}
-          </div>
-        )}
+              )}
+
+              {/* Listado Vertical de Clases Dirigidas */}
+              {guidedClasses.length > 0 && (
+                <div className="space-y-2.5">
+                  {guidedClasses.map((item) => {
+                    const isFull = (item.bookedCount || 0) >= item.capacity;
+                    const isPast = isClassPast(item.date, item.time);
+
+                    return (
+                      <div
+                        key={item.id}
+                        onClick={() => onSelectClass?.(item)}
+                        className={`border rounded-2xl p-4 transition-all cursor-pointer group shadow-sm backdrop-blur-sm ${
+                          isPast
+                            ? 'bg-neutral-900/40 border-neutral-800/60 opacity-80'
+                            : 'bg-[#121514] hover:bg-neutral-900/90 border-neutral-800 hover:border-neutral-700'
+                        }`}
+                      >
+                        <div className="flex justify-between items-start gap-2 mb-2">
+                          <div className="flex-1 min-w-0 pr-1">
+                            <h4 className={`text-sm font-semibold font-barlow tracking-wide truncate ${isPast ? 'text-neutral-500' : 'text-zinc-200 group-hover:text-[#B5B04E] transition-colors'}`}>
+                              {item.title}
+                            </h4>
+                          </div>
+                          <span className="text-xs font-mono bg-[#0A0C0B] border border-neutral-800 text-neutral-200 px-2.5 py-1 rounded-lg shrink-0">
+                            {item.time}
+                          </span>
+                        </div>
+
+                        <div className="pt-2.5 mt-2.5 border-t border-neutral-800/60 flex items-center justify-between">
+                          <div className="flex items-center gap-1.5 text-xs font-barlow">
+                            <span className="text-neutral-400 font-medium">Inscritos:</span>
+                            <div className="flex items-baseline font-mono font-bold">
+                              <span className={`text-base ${isPast ? 'text-neutral-500' : isFull ? 'text-red-400' : 'text-[#B5B04E]'}`}>
+                                {item.bookedCount || 0}
+                              </span>
+                              <span className="text-xs text-neutral-400 ml-0.5 font-normal">
+                                /{item.capacity}
+                              </span>
+                            </div>
+                          </div>
+
+                          <span className="text-xs text-neutral-400 group-hover:text-white flex items-center gap-1 font-barlow font-medium">
+                            <span>Ver</span>
+                            <ChevronRight className="w-3.5 h-3.5" />
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })()}
       </div>
     </section>
   );

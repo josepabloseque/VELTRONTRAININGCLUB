@@ -101,18 +101,6 @@ const NotificationBellCustomIcon: React.FC<{ className?: string }> = ({ classNam
 
 import { getLocalDateString, isClassPast, compareClassesChronological } from './lib/dateUtils';
 
-const formatBadgeDateTime = (dateStr: string, timeStr: string) => {
-  if (!dateStr) return timeStr;
-  const parts = dateStr.split('-').map(Number);
-  if (parts.length === 3) {
-    const d = new Date(parts[0], parts[1] - 1, parts[2]);
-    const weekday = d.toLocaleDateString('es-ES', { weekday: 'short' }).replace('.', '');
-    const capitalizedWeekday = weekday.charAt(0).toUpperCase() + weekday.slice(1);
-    const dayNumber = d.getDate();
-    return `${capitalizedWeekday} ${dayNumber} - ${timeStr}`;
-  }
-  return timeStr;
-};
 
 // Panel principal de la plataforma
 const Dashboard: React.FC = () => {
@@ -633,8 +621,8 @@ const Dashboard: React.FC = () => {
             {/* Días / Clases Agendadas por el Usuario */}
             <div className="space-y-2.5 pt-1">
               <div className="flex justify-between items-center px-0.5">
-                <h3 className="font-bebas text-xl tracking-wide uppercase text-[#B5B04E] leading-none">
-                  Sesiones de Hoy
+                <h3 className="font-bebas text-base tracking-wider uppercase text-[#B5B04E] leading-none">
+                  Mi Clase de Hoy
                 </h3>
               </div>
 
@@ -672,6 +660,7 @@ const Dashboard: React.FC = () => {
                     {todayBookedClasses.map((item) => {
                       const isPast = isClassPast(item.date, item.time);
                       const isFull = (item.bookedCount || 0) >= item.capacity;
+                      const isFree = item.title.toLowerCase().includes('libre') || (item.capacity || 0) >= 900;
 
                       return (
                         <div
@@ -690,30 +679,28 @@ const Dashboard: React.FC = () => {
                               </h4>
                             </div>
                             <span className="text-xs font-mono bg-[#0A0C0B] border border-zinc-800 text-zinc-300 px-2.5 py-1 rounded-lg shrink-0">
-                              {formatBadgeDateTime(item.date, item.time)}
+                              {item.time}
                             </span>
                           </div>
 
                           <div className="pt-2.5 mt-2.5 border-t border-zinc-800/80 flex items-center justify-between">
-                            <div className="flex items-center gap-1.5 text-xs font-barlow">
-                              <span className="text-zinc-500 font-medium">Inscritos:</span>
-                              <div className="flex items-baseline font-mono font-bold">
-                                <span className={`text-base ${isPast ? 'text-zinc-500' : isFull ? 'text-red-400' : 'text-[#B5B04E]'}`}>
-                                  {item.bookedCount || 0}
-                                </span>
-                                <span className="text-xs text-zinc-500 ml-0.5 font-normal">
-                                  /{item.capacity}
-                                </span>
+                            {!isFree ? (
+                              <div className="flex items-center gap-1.5 text-xs font-barlow">
+                                <span className="text-zinc-500 font-medium">Inscritos:</span>
+                                <div className="flex items-baseline font-mono font-bold">
+                                  <span className={`text-base ${isPast ? 'text-zinc-500' : isFull ? 'text-red-400' : 'text-[#B5B04E]'}`}>
+                                    {item.bookedCount || 0}
+                                  </span>
+                                  <span className="text-xs text-zinc-500 ml-0.5 font-normal">
+                                    /{item.capacity}
+                                  </span>
+                                </div>
                               </div>
-                            </div>
+                            ) : (
+                              <div />
+                            )}
 
                             <div className="flex items-center gap-2">
-                              {isPast && (
-                                <span className="text-[10px] font-bold px-2.5 py-0.5 rounded text-zinc-500 bg-zinc-900 border border-zinc-800">
-                                  Finalizada
-                                </span>
-                              )}
-
                               <span className="text-xs text-zinc-400 group-hover:text-white flex items-center gap-1 font-barlow font-medium">
                                 <span>Ver</span>
                                 <ChevronRight className="w-3.5 h-3.5" />
@@ -745,25 +732,14 @@ const Dashboard: React.FC = () => {
             .filter((item) => item.date === selectedClassDate)
             .slice()
             .sort(compareClassesChronological);
-          const currentSelectedDayObj = classStripDays.find((d) => d.dateStr === selectedClassDate);
-          const displayHeaderDate = currentSelectedDayObj
-            ? currentSelectedDayObj.formattedDisplay
-            : selectedClassDate;
+          
+          const freeClasses = dayClasses.filter((c) => c.title.toLowerCase().includes('libre') || (c.capacity || 0) >= 900);
+          const guidedClasses = dayClasses.filter((c) => !c.title.toLowerCase().includes('libre') && (c.capacity || 0) < 900);
 
           return (
-            <section className="space-y-4 animate-in fade-in duration-200">
-              {/* Encabezado */}
-              <div className="flex justify-between items-center">
-                <h2 className="font-bebas text-xl tracking-wide uppercase text-[#B5B04E] leading-none">
-                  Programación de Clases
-                </h2>
-                <span className="text-xs text-zinc-400 font-barlow font-medium capitalize">
-                  {displayHeaderDate}
-                </span>
-              </div>
-
-              {/* Tira Horizontal de Días (Próximos 14 Días) */}
-              <div className="flex gap-2 overflow-x-auto pb-2 pt-1 scrollbar-none snap-x -mx-4 px-4 sm:mx-0 sm:px-0">
+            <section className="space-y-3.5 animate-in fade-in duration-200">
+              {/* Tira Horizontal de Días (Próximos 14 Días) - Ahora en la parte superior sin cabecera redundante */}
+              <div className="flex gap-2 overflow-x-auto pb-1.5 pt-0.5 scrollbar-none no-scrollbar snap-x -mx-4 px-4 sm:mx-0 sm:px-0">
                 {classStripDays.map((day) => {
                   const isSelected = selectedClassDate === day.dateStr;
                   const hasClasses = classes.some((c) => c.date === day.dateStr);
@@ -827,71 +803,111 @@ const Dashboard: React.FC = () => {
                 })}
               </div>
 
-              {/* Listado de Clases Filtradas por el Día Seleccionado */}
-              <div className="space-y-2.5 pt-1">
-                {dayClasses.length === 0 ? (
-                  <div className="bg-[#121514] border border-zinc-800/80 rounded-2xl p-6 text-center font-barlow">
-                    <p className="text-xs text-zinc-500 font-medium">
-                      No hay clases programadas para este día.
-                    </p>
-                  </div>
-                ) : (
-                  dayClasses.map((item) => {
-                    const isFull = (item.bookedCount || 0) >= item.capacity;
-                    const isPast = isClassPast(item.date, item.time);
+              {/* Contenido del Día Seleccionado */}
+              {dayClasses.length === 0 ? (
+                <div className="bg-[#121514] border border-zinc-800/80 rounded-2xl p-6 text-center font-barlow">
+                  <p className="text-xs text-zinc-500 font-medium">
+                    No hay actividades programadas para este día.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3 pt-0.5">
+                  {/* Grid de 2 Columnas para Horario Libre (si existe en la fecha) */}
+                  {freeClasses.length > 0 && (
+                    <div className="grid grid-cols-2 gap-2.5">
+                      {freeClasses.map((item) => {
+                        const isPast = isClassPast(item.date, item.time);
+                        const isBooked = bookedClassIds.includes(item.id);
 
-                    return (
-                      <div
-                        key={item.id}
-                        onClick={() => setSelectedClass(item)}
-                        className={`border rounded-2xl p-4 transition-all cursor-pointer group shadow-sm backdrop-blur-sm ${
-                          isPast
-                            ? 'bg-zinc-900/30 border-zinc-800/60 opacity-60'
-                            : 'bg-[#121514] hover:bg-zinc-900/90 border-zinc-800 hover:border-zinc-700'
-                        }`}
-                      >
-                        <div className="flex justify-between items-start gap-2 mb-2">
-                          <div className="flex-1 min-w-0 pr-1">
-                            <h3 className={`text-sm font-semibold font-barlow tracking-wide truncate ${isPast ? 'text-zinc-500' : 'text-zinc-200 group-hover:text-[#B5B04E] transition-colors'}`}>
-                              {item.title}
-                            </h3>
-                          </div>
-                          <span className="text-xs font-mono bg-[#0A0C0B] border border-zinc-800 text-zinc-300 px-2.5 py-1 rounded-lg shrink-0">
-                            {item.time}
-                          </span>
-                        </div>
+                        return (
+                          <div
+                            key={item.id}
+                            onClick={() => setSelectedClass(item)}
+                            className={`border rounded-2xl p-3 sm:p-3.5 transition-all cursor-pointer group shadow-sm flex flex-col justify-between ${
+                              isBooked
+                                ? 'bg-[#8E8C3A]/10 border-[#8E8C3A] ring-1 ring-[#8E8C3A]/40'
+                                : isPast
+                                ? 'bg-zinc-900/30 border-zinc-800/60 opacity-60'
+                                : 'bg-[#121514] hover:bg-zinc-900/90 border-zinc-800 hover:border-zinc-700'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-1 mb-2">
+                              <h3 className={`text-xs font-semibold font-barlow tracking-wide truncate ${isBooked ? 'text-[#B5B04E]' : isPast ? 'text-zinc-500' : 'text-zinc-200 group-hover:text-[#B5B04E] transition-colors'}`}>
+                                {item.title}
+                              </h3>
+                              <ChevronRight className={`w-3.5 h-3.5 transition-colors shrink-0 ${isBooked ? 'text-[#B5B04E]' : 'text-zinc-500 group-hover:text-white'}`} />
+                            </div>
 
-                        <div className="pt-2.5 mt-2.5 border-t border-zinc-800/80 flex items-center justify-between">
-                          <div className="flex items-center gap-1.5 text-xs font-barlow">
-                            <span className="text-zinc-500 font-medium">Inscritos:</span>
-                            <div className="flex items-baseline font-mono font-bold">
-                              <span className={`text-base ${isPast ? 'text-zinc-500' : isFull ? 'text-red-400' : 'text-[#B5B04E]'}`}>
-                                {item.bookedCount || 0}
-                              </span>
-                              <span className="text-xs text-zinc-500 ml-0.5 font-normal">
-                                /{item.capacity}
+                            <div>
+                              <span className={`text-xs sm:text-[13px] font-mono font-semibold px-2 py-1 rounded-lg block text-center ${
+                                isBooked
+                                  ? 'bg-[#0A0C0B] border border-[#8E8C3A]/40 text-white font-bold'
+                                  : 'bg-[#0A0C0B] border border-zinc-800 text-zinc-200'
+                              }`}>
+                                {item.time}
                               </span>
                             </div>
                           </div>
+                        );
+                      })}
+                    </div>
+                  )}
 
-                          <div className="flex items-center gap-2">
-                            {isPast && (
-                              <span className="text-[10px] font-bold text-zinc-500 bg-zinc-900 border border-zinc-800 px-2 py-0.5 rounded">
-                                Finalizada
+                  {/* Listado Vertical de Clases Dirigidas */}
+                  {guidedClasses.length > 0 && (
+                    <div className="space-y-2.5">
+                      {guidedClasses.map((item) => {
+                        const isFull = (item.bookedCount || 0) >= item.capacity;
+                        const isPast = isClassPast(item.date, item.time);
+
+                        return (
+                          <div
+                            key={item.id}
+                            onClick={() => setSelectedClass(item)}
+                            className={`border rounded-2xl p-4 transition-all cursor-pointer group shadow-sm backdrop-blur-sm ${
+                              isPast
+                                ? 'bg-zinc-900/30 border-zinc-800/60 opacity-60'
+                                : 'bg-[#121514] hover:bg-zinc-900/90 border-zinc-800 hover:border-zinc-700'
+                            }`}
+                          >
+                            <div className="flex justify-between items-start gap-2 mb-2">
+                              <div className="flex-1 min-w-0 pr-1">
+                                <h3 className={`text-sm font-semibold font-barlow tracking-wide truncate ${isPast ? 'text-zinc-500' : 'text-zinc-200 group-hover:text-[#B5B04E] transition-colors'}`}>
+                                  {item.title}
+                                </h3>
+                              </div>
+                              <span className="text-xs font-mono bg-[#0A0C0B] border border-zinc-800 text-zinc-300 px-2.5 py-1 rounded-lg shrink-0">
+                                {item.time}
                               </span>
-                            )}
+                            </div>
 
-                            <span className="text-xs text-zinc-400 group-hover:text-white flex items-center gap-1 font-barlow font-medium">
-                              <span>Ver</span>
-                              <ChevronRight className="w-3.5 h-3.5" />
-                            </span>
+                            <div className="pt-2.5 mt-2.5 border-t border-zinc-800/80 flex items-center justify-between">
+                              <div className="flex items-center gap-1.5 text-xs font-barlow">
+                                <span className="text-zinc-500 font-medium">Inscritos:</span>
+                                <div className="flex items-baseline font-mono font-bold">
+                                  <span className={`text-base ${isPast ? 'text-zinc-500' : isFull ? 'text-red-400' : 'text-[#B5B04E]'}`}>
+                                    {item.bookedCount || 0}
+                                  </span>
+                                  <span className="text-xs text-zinc-500 ml-0.5 font-normal">
+                                    /{item.capacity}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs text-zinc-400 group-hover:text-white flex items-center gap-1 font-barlow font-medium">
+                                  <span>Ver</span>
+                                  <ChevronRight className="w-3.5 h-3.5" />
+                                </span>
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
             </section>
           );
         })()}
@@ -1035,49 +1051,53 @@ const Dashboard: React.FC = () => {
         )}
       </main>
 
-      {/* Navegación Móvil Inferior */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[#0A0C0B]/95 backdrop-blur-lg border-t border-zinc-900 px-6 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] shadow-[0_-10px_30px_rgba(0,0,0,0.8)]">
-        <div className="max-w-md mx-auto flex justify-around items-center">
+      {/* Navegación Móvil Inferior Táctica y Ergonómica (Estándar Nativo iOS/Android) */}
+      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[#0A0C0B]/95 backdrop-blur-lg border-t border-zinc-900 px-2 pt-1.5 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))] shadow-[0_-10px_30px_rgba(0,0,0,0.8)]">
+        <div className="max-w-md mx-auto flex items-stretch">
           <button
+            type="button"
             onClick={() => setActiveTab('inicio')}
-            className={`flex flex-col items-center gap-1 text-xs font-barlow font-medium transition-all active:scale-95 ${
-              activeTab === 'inicio' ? 'text-[#B5B04E] font-bold' : 'text-zinc-400 hover:text-zinc-200'
+            className={`flex-1 flex flex-col items-center justify-center py-2 px-1 gap-1 transition-all active:scale-95 cursor-pointer rounded-xl select-none min-h-[52px] ${
+              activeTab === 'inicio' ? 'text-[#B5B04E] font-bold' : 'text-zinc-400 hover:text-zinc-200 font-medium'
             }`}
           >
-            <House className="w-6 h-6 stroke-[2.2]" />
-            <span>Inicio</span>
+            <House className={`w-6 h-6 ${activeTab === 'inicio' ? 'stroke-[2.5] text-[#B5B04E]' : 'stroke-[2]'}`} />
+            <span className="text-[11px] font-barlow tracking-wider leading-none">Inicio</span>
           </button>
 
           <button
+            type="button"
             onClick={() => setActiveTab('clases')}
-            className={`flex flex-col items-center gap-1 text-xs font-barlow font-medium transition-all active:scale-95 ${
+            className={`flex-1 flex flex-col items-center justify-center py-2 px-1 gap-1 transition-all active:scale-95 cursor-pointer rounded-xl select-none min-h-[52px] ${
               activeTab === 'clases' ? 'text-[#B5B04E] font-bold' : 'text-zinc-400 hover:text-zinc-200'
             }`}
           >
-            <CalendarCustomIcon className="w-6 h-6 stroke-[1.8]" />
-            <span>Clases</span>
+            <CalendarCustomIcon className={`w-6 h-6 ${activeTab === 'clases' ? 'stroke-[2.2] text-[#B5B04E]' : 'stroke-[1.8]'}`} />
+            <span className="text-[11px] font-barlow tracking-wider leading-none">Clases</span>
           </button>
 
           {isAdmin && (
             <button
+              type="button"
               onClick={() => setActiveTab('membresias')}
-              className={`flex flex-col items-center gap-1 text-xs font-barlow font-medium transition-all active:scale-95 ${
+              className={`flex-1 flex flex-col items-center justify-center py-2 px-1 gap-1 transition-all active:scale-95 cursor-pointer rounded-xl select-none min-h-[52px] ${
                 activeTab === 'membresias' ? 'text-[#B5B04E] font-bold' : 'text-zinc-400 hover:text-zinc-200'
               }`}
             >
-              <AccesosCustomIcon className="w-6 h-6" />
-              <span>Membresías</span>
+              <AccesosCustomIcon className={`w-6 h-6 ${activeTab === 'membresias' ? 'text-[#B5B04E]' : ''}`} />
+              <span className="text-[11px] font-barlow tracking-wider leading-none">Membresías</span>
             </button>
           )}
 
           <button
+            type="button"
             onClick={() => setActiveTab('perfil')}
-            className={`flex flex-col items-center gap-1 text-xs font-barlow font-medium transition-all active:scale-95 ${
+            className={`flex-1 flex flex-col items-center justify-center py-2 px-1 gap-1 transition-all active:scale-95 cursor-pointer rounded-xl select-none min-h-[52px] ${
               activeTab === 'perfil' ? 'text-[#B5B04E] font-bold' : 'text-zinc-400 hover:text-zinc-200'
             }`}
           >
-            <User className="w-6 h-6 stroke-[2.2]" />
-            <span>Perfil</span>
+            <User className={`w-6 h-6 ${activeTab === 'perfil' ? 'stroke-[2.5] text-[#B5B04E]' : 'stroke-[2]'}`} />
+            <span className="text-[11px] font-barlow tracking-wider leading-none">Perfil</span>
           </button>
         </div>
       </nav>
