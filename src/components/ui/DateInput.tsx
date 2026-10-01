@@ -154,18 +154,90 @@ export const DateInput: React.FC<DateInputProps> = ({
     return null;
   };
 
+  // Formatea automáticamente con barras separadoras DD/MM/AAAA y valida rangos lógicos
+  const formatInputWithMask = (raw: string, prev: string): string => {
+    // Si el usuario está borrando
+    const isDeleting = raw.length < prev.length;
+
+    // Si el usuario borró la barra directamente (ej. estaba en "19/" y ahora es "19")
+    if (isDeleting && prev.endsWith('/') && !raw.endsWith('/')) {
+      const digits = raw.replace(/\D/g, '');
+      if (digits.length === 2) return digits.slice(0, 1);
+      if (digits.length === 4) return `${digits.slice(0, 2)}/${digits.slice(2, 3)}`;
+      return raw;
+    }
+
+    // Extraer únicamente los dígitos (máximo 8 dígitos: 2 día, 2 mes, 4 año)
+    const digits = raw.replace(/\D/g, '').slice(0, 8);
+    if (!digits) return '';
+
+    // Validar DÍA
+    // Si escribe un primer dígito > 3 (ej. '4' al '9'), se auto-completa como día de un solo dígito con cero (ej. '04/')
+    if (digits.length === 1 && !isDeleting) {
+      const dNum = parseInt(digits, 10);
+      if (dNum > 3) {
+        return `0${dNum}/`;
+      }
+      return digits;
+    }
+
+    let day = digits.slice(0, 2);
+    if (day.length === 2) {
+      let dNum = parseInt(day, 10);
+      if (dNum > 31) dNum = 31;
+      if (dNum === 0 && digits.length >= 2) dNum = 1;
+      day = String(dNum).padStart(2, '0');
+    }
+
+    if (digits.length <= 2) {
+      if (digits.length === 2 && !isDeleting) {
+        return `${day}/`;
+      }
+      return digits.length === 2 ? day : digits;
+    }
+
+    // Validar MES
+    // Si el primer dígito de mes es > 1 (ej. '2' al '9'), se auto-completa como mes con cero (ej. '02/')
+    if (digits.length === 3 && !isDeleting) {
+      const mFirstDigit = parseInt(digits.slice(2, 3), 10);
+      if (mFirstDigit > 1) {
+        return `${day}/0${mFirstDigit}/`;
+      }
+      return `${day}/${digits.slice(2, 3)}`;
+    }
+
+    let month = digits.slice(2, 4);
+    if (month.length === 2) {
+      let mNum = parseInt(month, 10);
+      if (mNum > 12) mNum = 12;
+      if (mNum === 0 && digits.length >= 4) mNum = 1;
+      month = String(mNum).padStart(2, '0');
+    }
+
+    if (digits.length <= 4) {
+      if (digits.length === 4 && !isDeleting) {
+        return `${day}/${month}/`;
+      }
+      return `${day}/${month}`;
+    }
+
+    const year = digits.slice(4, 8);
+    return `${day}/${month}/${year}`;
+  };
+
   const handleTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    setDisplayValue(val);
+    const rawVal = e.target.value;
+    const formatted = formatInputWithMask(rawVal, displayValue);
+    setDisplayValue(formatted);
 
     // Intentar validar inmediatamente
-    const parsed = tryParseFlexibleDate(val);
+    const parsed = tryParseFlexibleDate(formatted);
     if (parsed) {
       onChange(parsed.iso);
       const ym = parseYearMonth(parsed.iso);
       setViewYear(ym.year);
       setViewMonth(ym.month);
-    } else if (!val.trim()) {
+    } else if (!formatted.trim()) {
       onChange('');
     }
   };

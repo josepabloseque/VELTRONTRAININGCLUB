@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Lock, AlertCircle, Loader2, CheckCircle2 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
+import { VeltronLogo } from '../components/VeltronLogo';
 
 export const ResetPassword: React.FC = () => {
-  const navigate = useNavigate();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -58,29 +57,33 @@ export const ResetPassword: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0A0C0B] text-white flex items-center justify-center p-4 sm:p-6 selection:bg-[#8E8C3A]/30">
-      {/* Contenedor Central / Tarjeta Principal */}
-      <main className="max-w-md w-full">
+    <div className="w-full min-h-screen bg-[#0A0C0B] text-white relative font-sans select-none overflow-hidden flex flex-col justify-between p-4 sm:p-6 selection:bg-[#8E8C3A]/30">
+      {/* Gradientes fluidos característicos de la marca */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[520px] h-[520px] bg-[#8E8C3A]/20 rounded-full blur-[130px] animate-orb-1" />
+        <div className="absolute top-1/4 -right-10 w-[380px] h-[380px] bg-[#E09F3E]/15 rounded-full blur-[110px] animate-orb-2" />
+        <div className="absolute -bottom-10 -left-10 w-[420px] h-[420px] bg-[#B5B04E]/15 rounded-full blur-[120px] animate-orb-3" />
+      </div>
+
+      {/* Header superior: Logo centrado en la parte superior */}
+      <header className="w-full max-w-md mx-auto flex justify-center pt-2 sm:pt-4 relative z-10">
+        <VeltronLogo size="md" />
+      </header>
+
+      {/* Contenedor Central / Modal Principal */}
+      <main className="max-w-md w-full mx-auto my-auto relative z-10 py-4">
         <div className="bg-[#121514] border border-zinc-800 rounded-2xl p-6 sm:p-7 shadow-[0_20px_50px_rgba(0,0,0,0.8)]">
           {isSuccess ? (
             <div className="text-center py-4 space-y-4">
               <div className="w-12 h-12 rounded-xl bg-emerald-950/60 border border-emerald-500/60 flex items-center justify-center mx-auto text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.2)]">
                 <CheckCircle2 className="w-6 h-6" />
               </div>
-              <h2 className="font-bebas text-2xl tracking-wide uppercase text-white leading-none">
-                ¡Contraseña Actualizada!
+              <h2 className="font-bebas text-2xl sm:text-3xl tracking-wide uppercase text-white leading-none">
+                ¡CONTRASEÑA ACTUALIZADA!
               </h2>
-              <p className="text-xs text-zinc-300 font-barlow leading-relaxed max-w-xs mx-auto">
-                Tu contraseña se ha restablecido correctamente. Ya puedes acceder al club con tus nuevas credenciales.
+              <p className="text-sm sm:text-base text-zinc-300 font-barlow leading-relaxed max-w-sm mx-auto">
+                Tu nueva clave ya está activa. Cierra esta pestaña y abre tu App Veltron desde la pantalla de inicio para ingresar a tu cuenta.
               </p>
-              <div className="pt-2">
-                <button
-                  onClick={() => navigate('/')}
-                  className="w-full py-3.5 bg-[#8E8C3A] hover:bg-[#B5B04E] text-black font-bebas text-lg tracking-wider uppercase rounded-xl transition-all shadow-[0_0_20px_rgba(142,140,58,0.25)] active:scale-[0.98] leading-none"
-                >
-                  Entrar al Club
-                </button>
-              </div>
             </div>
           ) : (
             <div>
@@ -163,6 +166,9 @@ export const ResetPassword: React.FC = () => {
           )}
         </div>
       </main>
+
+      {/* Espaciador inferior para balance visual */}
+      <div className="w-full max-w-md mx-auto pb-2 sm:pb-4 relative z-10" />
     </div>
   );
 };
