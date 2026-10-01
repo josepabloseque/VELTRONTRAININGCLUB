@@ -493,7 +493,7 @@ const Dashboard: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0A0C0B] text-white flex flex-col font-sans selection:bg-[#8E8C3A]/30 pb-20">
+    <div className="min-h-screen bg-[#0A0C0B] text-white flex flex-col font-sans selection:bg-[#8E8C3A]/30 pb-28 sm:pb-32">
       {/* Header Superior con soporte Safe-Area para Notch / Dynamic Island */}
       <header className="sticky top-0 z-30 bg-[#0A0C0B] border-b border-zinc-900 px-5 pt-[calc(0.75rem+env(safe-area-inset-top,0px))] pb-3.5">
         <div className="max-w-md mx-auto flex items-center gap-2.5">
@@ -504,8 +504,8 @@ const Dashboard: React.FC = () => {
         </div>
       </header>
 
-      {/* Contenido Principal */}
-      <main className="max-w-md mx-auto w-full px-5 pt-7 sm:pt-8 space-y-6">
+      {/* Contenido Principal con espacio de desplazamiento inferior completo */}
+      <main className="max-w-md mx-auto w-full px-5 pt-7 sm:pt-8 pb-6 space-y-6">
 
 
         {/* Pestaña: INICIO (Exclusivo Atletas) */}
@@ -839,7 +839,7 @@ const Dashboard: React.FC = () => {
                             </div>
 
                             <div>
-                              <span className={`text-xs sm:text-[13px] font-mono font-semibold px-2 py-1 rounded-lg block text-center ${
+                              <span className={`text-[11px] sm:text-xs font-mono font-semibold px-1.5 py-1 rounded-lg block text-center whitespace-nowrap tracking-tight ${
                                 isBooked
                                   ? 'bg-[#0A0C0B] border border-[#8E8C3A]/40 text-white font-bold'
                                   : 'bg-[#0A0C0B] border border-zinc-800 text-zinc-200'

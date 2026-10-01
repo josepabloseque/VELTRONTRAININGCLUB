@@ -260,7 +260,7 @@ export const AdminHomeView: React.FC<AdminHomeViewProps> = ({
                         </div>
 
                         <div>
-                          <span className="text-xs sm:text-[13px] font-mono font-semibold bg-[#0A0C0B] border border-neutral-800 text-neutral-200 px-2 py-1 rounded-lg block text-center">
+                          <span className="text-[11px] sm:text-xs font-mono font-semibold bg-[#0A0C0B] border border-neutral-800 text-neutral-200 px-1.5 py-1 rounded-lg block text-center whitespace-nowrap tracking-tight">
                             {item.time}
                           </span>
                         </div>

@@ -288,7 +288,7 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
                       </div>
 
                       <div className="space-y-2">
-                        <span className="text-xs sm:text-[13px] font-mono font-semibold bg-[#0A0C0B] border border-zinc-800 text-zinc-200 px-2 py-1 rounded-lg block text-center">
+                        <span className="text-[11px] sm:text-xs font-mono font-semibold bg-[#0A0C0B] border border-zinc-800 text-zinc-200 px-1.5 py-1 rounded-lg block text-center whitespace-nowrap tracking-tight">
                           {item.time}
                         </span>
 
@@ -646,7 +646,7 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
                         </h3>
                       </div>
                       <div>
-                        <span className="text-xs sm:text-[13px] font-mono font-semibold bg-[#0A0C0B] border border-zinc-800 text-zinc-200 px-2 py-1 rounded-lg block text-center">
+                        <span className="text-[11px] sm:text-xs font-mono font-semibold bg-[#0A0C0B] border border-zinc-800 text-zinc-200 px-1.5 py-1 rounded-lg block text-center whitespace-nowrap tracking-tight">
                           {classToDelete?.time}
                         </span>
                       </div>
