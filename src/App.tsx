@@ -107,6 +107,11 @@ const Dashboard: React.FC = () => {
   const { membership, user, isActive, isAdmin, signOut, refreshMembership } = useAuth();
   const [activeTab, setActiveTab] = useState<'inicio' | 'clases' | 'membresias' | 'perfil'>('inicio');
 
+  // Al cambiar de pestaña principal, posicionar la nueva vista arriba del todo de forma instantánea
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, [activeTab]);
+
   // Modales
   const [isClassModalOpen, setIsClassModalOpen] = useState(false);
   const [isMembershipsModalOpen, setIsMembershipsModalOpen] = useState(false);
@@ -171,7 +176,7 @@ const Dashboard: React.FC = () => {
           coach: item.coach || 'Coach',
           date: item.date || todayStr,
           time: item.time,
-          capacity: Number(item.capacity) || 12,
+          capacity: Number(item.capacity) || 14,
           bookedCount: Number(item.booked_count) || 0,
         }));
         const sorted = mapped.slice().sort(compareClassesChronological);

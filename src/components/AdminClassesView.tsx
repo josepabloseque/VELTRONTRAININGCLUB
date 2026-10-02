@@ -7,7 +7,6 @@ import {
   AlertDialogContent,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogCancel,
   AlertDialogAction,
@@ -45,6 +44,20 @@ const parseTimeString = (t: string) => {
   return { hour: '6', minute: '00', period: 'AM' as 'AM' | 'PM' };
 };
 
+const parseTimeRangeString = (t: string) => {
+  const parts = t.split(/[-–—]/);
+  if (parts.length >= 2) {
+    const start = parseTimeString(parts[0].trim());
+    const end = parseTimeString(parts[1].trim());
+    return { start, end };
+  }
+  const single = parseTimeString(t);
+  return {
+    start: single,
+    end: { hour: '11', minute: '00', period: 'AM' as 'AM' | 'PM' },
+  };
+};
+
 export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
   classes,
   onAddClass,
@@ -62,7 +75,10 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
   const [hour, setHour] = useState('6');
   const [minute, setMinute] = useState('00');
   const [period, setPeriod] = useState<'AM' | 'PM'>('AM');
-  const [capacity, setCapacity] = useState<number | string>(12);
+  const [endHour, setEndHour] = useState('11');
+  const [endMinute, setEndMinute] = useState('00');
+  const [endPeriod, setEndPeriod] = useState<'AM' | 'PM'>('AM');
+  const [capacity, setCapacity] = useState<number | string>(14);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -99,7 +115,10 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
     setHour('6');
     setMinute('00');
     setPeriod('AM');
-    setCapacity(12);
+    setEndHour('11');
+    setEndMinute('00');
+    setEndPeriod('AM');
+    setCapacity(14);
     setEditingClass(null);
     setIsSubmitting(false);
   };
@@ -114,11 +133,25 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
     setEditingClass(cls);
     setTitle(cls.title);
     setSelectedDate(cls.date || getLocalDateString());
-    const parsed = parseTimeString(cls.time);
-    setHour(parsed.hour);
-    setMinute(parsed.minute);
-    setPeriod(parsed.period);
-    setCapacity(cls.capacity || 12);
+    const isFree = cls.title.toLowerCase().includes('libre') || (cls.capacity || 0) >= 900;
+    if (isFree) {
+      const range = parseTimeRangeString(cls.time);
+      setHour(range.start.hour);
+      setMinute(range.start.minute);
+      setPeriod(range.start.period);
+      setEndHour(range.end.hour);
+      setEndMinute(range.end.minute);
+      setEndPeriod(range.end.period);
+    } else {
+      const parsed = parseTimeString(cls.time);
+      setHour(parsed.hour);
+      setMinute(parsed.minute);
+      setPeriod(parsed.period);
+      setEndHour('11');
+      setEndMinute('00');
+      setEndPeriod('AM');
+    }
+    setCapacity(cls.capacity || 14);
     setIsSubmitting(false);
     setShowForm(true);
   };
@@ -128,7 +161,15 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
     setShowForm(false);
   };
 
-  const formattedTime = `${hour}:${minute} ${period}`;
+  const isFormFreeTraining =
+    title.toLowerCase().includes('libre') ||
+    (editingClass && (editingClass.capacity || 0) >= 900) ||
+    Number(capacity) >= 900;
+
+  const formattedTime = isFormFreeTraining
+    ? `${hour}:${minute} ${period} - ${endHour}:${endMinute} ${endPeriod}`
+    : `${hour}:${minute} ${period}`;
+
   const isInvalidPastToday = selectedDate === todayStr && isClassPast(selectedDate, formattedTime);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -148,7 +189,7 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
         title: title.trim(),
         date: selectedDate,
         time: formattedTime,
-        capacity: isFree ? 999 : Number(capacity) || 12,
+        capacity: isFree ? 999 : Number(capacity) || 14,
       };
 
       onUpdateClass(updated);
@@ -162,7 +203,7 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
         coach: 'Coach Veltron',
         date: selectedDate,
         time: formattedTime,
-        capacity: isFree ? 999 : Number(capacity) || 12,
+        capacity: isFree ? 999 : Number(capacity) || 14,
         bookedCount: 0,
       };
 
@@ -208,7 +249,7 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
 
             <button
               onClick={handleOpenAdd}
-              className="py-2 px-3 bg-[#8E8C3A] hover:bg-[#B5B04E] text-black font-bebas text-xs tracking-wider uppercase rounded-xl transition-all inline-flex items-center justify-center gap-1.5 active:scale-95 leading-none shadow-[0_0_12px_rgba(142,140,58,0.25)] shrink-0 cursor-pointer"
+              className="py-2 px-3 bg-[#8E8C3A] hover:bg-[#B5B04E] text-black font-bebas text-xs tracking-wider uppercase rounded-xl transition-all inline-flex items-center justify-center gap-1.5 active:scale-95 leading-none shrink-0 cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
               <span className="leading-none">Agregar Clase</span>
@@ -445,8 +486,132 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
               {(() => {
                 const isFormFreeTraining = title.toLowerCase().includes('libre') || (editingClass && (editingClass.capacity || 0) >= 900) || Number(capacity) >= 900;
 
+                if (isFormFreeTraining) {
+                  return (
+                    <div className="space-y-3.5">
+                      {/* Hora de Inicio */}
+                      <div className="space-y-1.5">
+                        <label className="block text-[11px] uppercase tracking-wider text-zinc-300 font-semibold font-barlow">
+                          Hora de Inicio ({hour}:{minute} {period})
+                        </label>
+                        <div className="grid grid-cols-3 gap-1.5">
+                          <select
+                            value={hour}
+                            onChange={(e) => setHour(e.target.value)}
+                            className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2 px-2 text-base sm:text-xs text-white focus:outline-none transition-colors font-mono text-center cursor-pointer"
+                            title="Hora de inicio"
+                          >
+                            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((h) => (
+                              <option key={`start-${h}`} value={String(h)}>
+                                {h}
+                              </option>
+                            ))}
+                          </select>
+
+                          <select
+                            value={minute}
+                            onChange={(e) => setMinute(e.target.value)}
+                            className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2 px-2 text-base sm:text-xs text-white focus:outline-none transition-colors font-mono text-center cursor-pointer"
+                            title="Minutos de inicio"
+                          >
+                            {['00', '15', '30', '45'].map((m) => (
+                              <option key={`start-m-${m}`} value={m}>
+                                :{m}
+                              </option>
+                            ))}
+                          </select>
+
+                          <div className="flex rounded-xl bg-[#0A0C0B] border border-zinc-800 p-0.5">
+                            <button
+                              type="button"
+                              onClick={() => setPeriod('AM')}
+                              className={`flex-1 rounded-lg text-xs font-mono font-bold transition-all py-1.5 cursor-pointer ${
+                                period === 'AM'
+                                  ? 'bg-[#8E8C3A] text-black shadow-sm'
+                                  : 'text-zinc-400 hover:text-white'
+                              }`}
+                            >
+                              AM
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setPeriod('PM')}
+                              className={`flex-1 rounded-lg text-xs font-mono font-bold transition-all py-1.5 cursor-pointer ${
+                                period === 'PM'
+                                  ? 'bg-[#8E8C3A] text-black shadow-sm'
+                                  : 'text-zinc-400 hover:text-white'
+                              }`}
+                            >
+                              PM
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Hora de Finalización */}
+                      <div className="space-y-1.5">
+                        <label className="block text-[11px] uppercase tracking-wider text-zinc-300 font-semibold font-barlow">
+                          Hora de Finalización ({endHour}:{endMinute} {endPeriod})
+                        </label>
+                        <div className="grid grid-cols-3 gap-1.5">
+                          <select
+                            value={endHour}
+                            onChange={(e) => setEndHour(e.target.value)}
+                            className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2 px-2 text-base sm:text-xs text-white focus:outline-none transition-colors font-mono text-center cursor-pointer"
+                            title="Hora de finalización"
+                          >
+                            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((h) => (
+                              <option key={`end-${h}`} value={String(h)}>
+                                {h}
+                              </option>
+                            ))}
+                          </select>
+
+                          <select
+                            value={endMinute}
+                            onChange={(e) => setEndMinute(e.target.value)}
+                            className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2 px-2 text-base sm:text-xs text-white focus:outline-none transition-colors font-mono text-center cursor-pointer"
+                            title="Minutos de finalización"
+                          >
+                            {['00', '15', '30', '45'].map((m) => (
+                              <option key={`end-m-${m}`} value={m}>
+                                :{m}
+                              </option>
+                            ))}
+                          </select>
+
+                          <div className="flex rounded-xl bg-[#0A0C0B] border border-zinc-800 p-0.5">
+                            <button
+                              type="button"
+                              onClick={() => setEndPeriod('AM')}
+                              className={`flex-1 rounded-lg text-xs font-mono font-bold transition-all py-1.5 cursor-pointer ${
+                                endPeriod === 'AM'
+                                  ? 'bg-[#8E8C3A] text-black shadow-sm'
+                                  : 'text-zinc-400 hover:text-white'
+                              }`}
+                            >
+                              AM
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setEndPeriod('PM')}
+                              className={`flex-1 rounded-lg text-xs font-mono font-bold transition-all py-1.5 cursor-pointer ${
+                                endPeriod === 'PM'
+                                  ? 'bg-[#8E8C3A] text-black shadow-sm'
+                                  : 'text-zinc-400 hover:text-white'
+                              }`}
+                            >
+                              PM
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+
                 return (
-                  <div className={`grid gap-4 ${isFormFreeTraining ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2'}`}>
+                  <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
                     {/* Horario: Hora, Minutos, AM/PM */}
                     <div className="space-y-1.5">
                       <label className="block text-[11px] uppercase tracking-wider text-zinc-300 font-semibold font-barlow">
@@ -457,7 +622,7 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
                         <select
                           value={hour}
                           onChange={(e) => setHour(e.target.value)}
-                          className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2 px-2 text-base sm:text-xs text-white focus:outline-none transition-colors font-mono text-center"
+                          className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2 px-2 text-base sm:text-xs text-white focus:outline-none transition-colors font-mono text-center cursor-pointer"
                           title="Selecciona la hora"
                         >
                           {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((h) => (
@@ -471,7 +636,7 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
                         <select
                           value={minute}
                           onChange={(e) => setMinute(e.target.value)}
-                          className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2 px-2 text-base sm:text-xs text-white focus:outline-none transition-colors font-mono text-center"
+                          className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2 px-2 text-base sm:text-xs text-white focus:outline-none transition-colors font-mono text-center cursor-pointer"
                           title="Selecciona los minutos"
                         >
                           {['00', '15', '30', '45'].map((m) => (
@@ -486,7 +651,7 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
                           <button
                             type="button"
                             onClick={() => setPeriod('AM')}
-                            className={`flex-1 rounded-lg text-xs font-mono font-bold transition-all py-1.5 ${
+                            className={`flex-1 rounded-lg text-xs font-mono font-bold transition-all py-1.5 cursor-pointer ${
                               period === 'AM'
                                 ? 'bg-[#8E8C3A] text-black shadow-sm'
                                 : 'text-zinc-400 hover:text-white'
@@ -497,7 +662,7 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
                           <button
                             type="button"
                             onClick={() => setPeriod('PM')}
-                            className={`flex-1 rounded-lg text-xs font-mono font-bold transition-all py-1.5 ${
+                            className={`flex-1 rounded-lg text-xs font-mono font-bold transition-all py-1.5 cursor-pointer ${
                               period === 'PM'
                                 ? 'bg-[#8E8C3A] text-black shadow-sm'
                                 : 'text-zinc-400 hover:text-white'
@@ -510,34 +675,32 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
                     </div>
 
                     {/* Cupos (solo para clases dirigidas) */}
-                    {!isFormFreeTraining && (
-                      <div className="space-y-1.5">
-                        <label className="block text-[11px] uppercase tracking-wider text-zinc-300 font-semibold font-barlow">
-                          Cupos Máximos
-                        </label>
-                        <input
-                          type="number"
-                          min="1"
-                          max="50"
-                          value={capacity}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            if (val === '') {
-                              setCapacity('');
-                            } else {
-                              const num = parseInt(val, 10);
-                              setCapacity(isNaN(num) ? '' : num);
-                            }
-                          }}
-                          onBlur={() => {
-                            if (capacity === '' || Number(capacity) < 1) {
-                              setCapacity(12);
-                            }
-                          }}
-                          className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2 px-3 text-center text-base sm:text-xs font-mono text-white focus:outline-none transition-colors"
-                        />
-                      </div>
-                    )}
+                    <div className="space-y-1.5">
+                      <label className="block text-[11px] uppercase tracking-wider text-zinc-300 font-semibold font-barlow">
+                        Cupos Máximos
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="50"
+                        value={capacity}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === '') {
+                            setCapacity('');
+                          } else {
+                            const num = parseInt(val, 10);
+                            setCapacity(isNaN(num) ? '' : num);
+                          }
+                        }}
+                        onBlur={() => {
+                          if (capacity === '' || Number(capacity) < 1) {
+                            setCapacity(14);
+                          }
+                        }}
+                        className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2 px-3 text-center text-base sm:text-xs font-mono text-white focus:outline-none transition-colors"
+                      />
+                    </div>
                   </div>
                 );
               })()}
@@ -677,15 +840,11 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
                       </div>
                     </div>
                   )}
-
-                  <AlertDialogDescription className="text-xs sm:text-sm text-zinc-400 font-barlow">
-                    Esta acción no se puede deshacer.
-                  </AlertDialogDescription>
                 </>
               );
             })()}
           </AlertDialogHeader>
-          <AlertDialogFooter className="flex items-center gap-3 pt-2 w-full">
+          <AlertDialogFooter className="flex items-center gap-3 pt-1 w-full">
             <AlertDialogCancel onClick={() => setClassToDelete(null)} className="flex-1 py-3 text-center">
               Cancelar
             </AlertDialogCancel>

@@ -1,13 +1,47 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { VeltronLogo } from './VeltronLogo';
 import { Share, ArrowDown, PlusSquare, Check, MoreVertical, Download } from 'lucide-react';
 
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
+}
+
 export const InstallScreen: React.FC = () => {
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+
   // Detección precisa de iOS (iPhone, iPad, iPod y iPadOS)
   const isIOS = typeof window !== 'undefined' && (
     /iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase()) ||
     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
   );
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e as BeforeInstallPromptEvent);
+    };
+
+    const handleAppInstalled = () => {
+      setDeferredPrompt(null);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (deferredPrompt) {
+      await deferredPrompt.prompt();
+      await deferredPrompt.userChoice;
+      setDeferredPrompt(null);
+    }
+  };
 
   return (
     <div className="w-full min-h-screen bg-[#0A0C0B] text-white relative font-sans select-none overflow-hidden flex flex-col justify-between selection:bg-[#8E8C3A]/30">
@@ -18,7 +52,7 @@ export const InstallScreen: React.FC = () => {
       </div>
 
       {/* Contenedor central sobrio y ultra espacioso */}
-      <div className="w-full max-w-md mx-auto min-h-screen flex flex-col justify-between px-6 pt-[calc(3.5rem+env(safe-area-inset-top,0px))] pb-[calc(2.5rem+env(safe-area-inset-bottom,0px))] relative z-10">
+      <div className="w-full max-w-md mx-auto min-h-screen flex flex-col justify-between px-6 pt-[calc(3rem+env(safe-area-inset-top,0px))] pb-[calc(2rem+env(safe-area-inset-bottom,0px))] relative z-10">
         
         {/* 1. Header: Logo y Título */}
         <header className="flex flex-col items-center text-center">
@@ -29,16 +63,16 @@ export const InstallScreen: React.FC = () => {
           </h1>
         </header>
 
-        {/* 2. Tarjeta espaciosa con detección automática de plataforma */}
-        <main className="my-auto py-8">
-          <div className="bg-[#121514] border border-zinc-800/80 rounded-2xl p-7 sm:p-8 shadow-2xl space-y-7">
+        {/* 2. Tarjeta con detección automática de plataforma */}
+        <main className="my-auto py-6">
+          <div className="bg-[#121514] border border-zinc-800/80 rounded-2xl p-6 sm:p-7 shadow-2xl space-y-6">
             <span className="text-[11px] uppercase font-bold tracking-wider text-[#B5B04E] font-barlow block pb-3 border-b border-zinc-800/60">
-              {isIOS ? 'Instrucciones para iPhone (Safari)' : 'Instrucciones para Android (Chrome)'}
+              {isIOS ? 'Instrucciones para iPhone (Safari)' : 'Instalación para Android'}
             </span>
 
             {isIOS ? (
               /* Pasos iOS (Safari) */
-              <div className="space-y-6">
+              <div className="space-y-5">
                 <div className="flex items-center gap-4 py-1">
                   <span className="font-mono text-sm font-bold text-[#B5B04E] w-6 shrink-0 text-center select-none">
                     01
@@ -88,41 +122,66 @@ export const InstallScreen: React.FC = () => {
                 </div>
               </div>
             ) : (
-              /* Pasos Android (Chrome) */
-              <div className="space-y-6">
-                <div className="flex items-center gap-4 py-1">
-                  <span className="font-mono text-sm font-bold text-[#B5B04E] w-6 shrink-0 text-center select-none">
-                    01
-                  </span>
-                  <p className="text-sm font-barlow text-zinc-300 flex-1 leading-relaxed">
-                    Toca los <span className="text-white font-semibold">tres puntos (⋮)</span> en la esquina superior de Chrome
-                  </p>
-                  <div className="w-9 h-9 rounded-xl bg-[#0A0C0B] border border-zinc-800/90 text-[#B5B04E] flex items-center justify-center shrink-0 shadow-inner">
-                    <MoreVertical className="w-4 h-4" />
-                  </div>
-                </div>
+              /* Flujo Android con botón de 1 toque + respaldo universal */
+              <div className="space-y-5">
+                {/* Botón de instalación nativa directa si el navegador lo soporta */}
+                {deferredPrompt && (
+                  <button
+                    type="button"
+                    onClick={handleInstallClick}
+                    className="w-full py-3.5 px-6 bg-[#8E8C3A] hover:bg-[#B5B04E] text-black font-bebas text-lg tracking-wider uppercase rounded-xl flex items-center justify-center gap-2.5 transition-all active:scale-[0.98] shadow-[0_0_20px_rgba(142,140,58,0.25)] cursor-pointer leading-none font-bold"
+                  >
+                    <Download className="w-5 h-5" />
+                    <span>Instalar en 1 Toque</span>
+                  </button>
+                )}
 
-                <div className="flex items-center gap-4 py-1">
-                  <span className="font-mono text-sm font-bold text-[#B5B04E] w-6 shrink-0 text-center select-none">
-                    02
-                  </span>
-                  <p className="text-sm font-barlow text-zinc-300 flex-1 leading-relaxed">
-                    Selecciona <span className="text-white font-semibold">"Instalar aplicación"</span> o <span className="text-white font-semibold">"Agregar a inicio"</span>
-                  </p>
-                  <div className="w-9 h-9 rounded-xl bg-[#0A0C0B] border border-zinc-800/90 text-[#B5B04E] flex items-center justify-center shrink-0 shadow-inner">
-                    <Download className="w-4 h-4" />
+                {deferredPrompt && (
+                  <div className="flex items-center gap-3 pt-1">
+                    <div className="h-px bg-zinc-800/80 flex-1" />
+                    <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-barlow font-semibold">
+                      O sigue estos pasos
+                    </span>
+                    <div className="h-px bg-zinc-800/80 flex-1" />
                   </div>
-                </div>
+                )}
 
-                <div className="flex items-center gap-4 py-1">
-                  <span className="font-mono text-sm font-bold text-[#B5B04E] w-6 shrink-0 text-center select-none">
-                    03
-                  </span>
-                  <p className="text-sm font-barlow text-zinc-300 flex-1 leading-relaxed">
-                    Confirma pulsando <span className="text-white font-semibold">"Instalar"</span> en el aviso emergente
-                  </p>
-                  <div className="w-9 h-9 rounded-xl bg-[#0A0C0B] border border-zinc-800/90 text-[#B5B04E] flex items-center justify-center shrink-0 shadow-inner">
-                    <Check className="w-4 h-4" />
+                {/* Pasos universales manuales (compatibles con Chrome, Samsung Internet, Brave, etc.) */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-4 py-1">
+                    <span className="font-mono text-sm font-bold text-[#B5B04E] w-6 shrink-0 text-center select-none">
+                      01
+                    </span>
+                    <p className="text-sm font-barlow text-zinc-300 flex-1 leading-relaxed">
+                      Toca el <span className="text-white font-semibold">menú de opciones ( ⋮  o  ☰ )</span> de tu navegador
+                    </p>
+                    <div className="w-9 h-9 rounded-xl bg-[#0A0C0B] border border-zinc-800/90 text-[#B5B04E] flex items-center justify-center shrink-0 shadow-inner">
+                      <MoreVertical className="w-4 h-4" />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-4 py-1">
+                    <span className="font-mono text-sm font-bold text-[#B5B04E] w-6 shrink-0 text-center select-none">
+                      02
+                    </span>
+                    <p className="text-sm font-barlow text-zinc-300 flex-1 leading-relaxed">
+                      Selecciona <span className="text-white font-semibold">"Instalar aplicación"</span> o <span className="text-white font-semibold">"Agregar a inicio"</span>
+                    </p>
+                    <div className="w-9 h-9 rounded-xl bg-[#0A0C0B] border border-zinc-800/90 text-[#B5B04E] flex items-center justify-center shrink-0 shadow-inner">
+                      <Download className="w-4 h-4" />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-4 py-1">
+                    <span className="font-mono text-sm font-bold text-[#B5B04E] w-6 shrink-0 text-center select-none">
+                      03
+                    </span>
+                    <p className="text-sm font-barlow text-zinc-300 flex-1 leading-relaxed">
+                      Confirma pulsando <span className="text-white font-semibold">"Instalar"</span> en el aviso emergente
+                    </p>
+                    <div className="w-9 h-9 rounded-xl bg-[#0A0C0B] border border-zinc-800/90 text-[#B5B04E] flex items-center justify-center shrink-0 shadow-inner">
+                      <Check className="w-4 h-4" />
+                    </div>
                   </div>
                 </div>
               </div>

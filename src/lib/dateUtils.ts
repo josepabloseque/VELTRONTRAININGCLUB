@@ -31,8 +31,8 @@ export const parseClassTime = (timeStr: string): { hour: number; minute: number 
 };
 
 export const parseClassEndTime = (timeStr: string): { hour: number; minute: number } => {
-  if (timeStr.includes('-')) {
-    const parts = timeStr.split('-');
+  if (/[-–—]/.test(timeStr)) {
+    const parts = timeStr.split(/[-–—]/);
     return parseClassTime(parts[parts.length - 1].trim());
   }
   return parseClassTime(timeStr);
