@@ -2,7 +2,6 @@ import React from 'react';
 
 interface VeltronLogoProps {
   size?: 'sm' | 'md' | 'lg' | 'xl' | 'hero';
-  showText?: boolean;
   className?: string;
   animated?: boolean;
 }

@@ -7,12 +7,6 @@ export const getLocalDateString = (d: Date = new Date()): string => {
   return `${year}-${month}-${day}`;
 };
 
-export const getTomorrowDateString = (): string => {
-  const d = new Date();
-  d.setDate(d.getDate() + 1);
-  return getLocalDateString(d);
-};
-
 export const parseClassTime = (timeStr: string): { hour: number; minute: number } => {
   const match = timeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
   if (!match) return { hour: 0, minute: 0 };

@@ -14,18 +14,6 @@ export function isoToDisplayDate(iso: string): string {
   return iso;
 }
 
-export function displayDateToIso(display: string): string {
-  if (!display) return '';
-  const parts = display.split('/');
-  if (parts.length === 3) {
-    const [d, m, y] = parts;
-    if (d && m && y && y.length === 4) {
-      return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
-    }
-  }
-  return '';
-}
-
 const MONTH_NAMES_ES = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'

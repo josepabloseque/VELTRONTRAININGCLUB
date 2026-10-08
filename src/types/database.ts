@@ -17,23 +17,3 @@ export interface TrainingClass {
   capacity: number;
   bookedCount: number;
 }
-
-export interface ClassBooking {
-  id: string;
-  classId: string;
-  userId: string;
-  userFullName: string;
-  userEmail: string;
-  createdAt: string;
-}
-
-export interface Athlete {
-  userId: string;
-  fullName: string;
-  email: string;
-  phone: string;
-  role: 'athlete' | 'admin';
-  membershipStatus: 'active' | 'inactive' | 'expired';
-  planName?: string;
-  expiresAt?: string;
-}

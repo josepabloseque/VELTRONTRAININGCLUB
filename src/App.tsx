@@ -8,7 +8,6 @@ import { ResetPassword } from './pages/ResetPassword';
 import { Terms } from './pages/Terms';
 import { VeltronLogo } from './components/VeltronLogo';
 import { AdminClassModal } from './components/AdminClassModal';
-import { AdminMembershipsModal } from './components/AdminMembershipsModal';
 import { AdminAccessView } from './components/AdminAccessView';
 import { AdminClassesView } from './components/AdminClassesView';
 import { AdminHomeView } from './components/AdminHomeView';
@@ -114,7 +113,6 @@ const Dashboard: React.FC = () => {
 
   // Modales
   const [isClassModalOpen, setIsClassModalOpen] = useState(false);
-  const [isMembershipsModalOpen, setIsMembershipsModalOpen] = useState(false);
   const [selectedClass, setSelectedClass] = useState<TrainingClass | null>(null);
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
 
@@ -1120,12 +1118,6 @@ const Dashboard: React.FC = () => {
         isOpen={isClassModalOpen}
         onClose={() => setIsClassModalOpen(false)}
         onSaveClass={handleSaveClass}
-      />
-
-      <AdminMembershipsModal
-        isOpen={isMembershipsModalOpen}
-        onClose={() => setIsMembershipsModalOpen(false)}
-        onMembershipUpdated={() => refreshMembership()}
       />
 
       {(() => {
