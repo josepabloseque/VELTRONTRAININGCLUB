@@ -423,7 +423,7 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
 
       {/* MODAL (AGREGAR / EDITAR CLASE) - Native Mobile Bottom Sheet / Desktop Modal */}
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6 pt-[calc(env(safe-area-inset-top,0px)+0.75rem)] pb-[env(safe-area-inset-bottom,0px)] sm:pb-6 animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6 pt-[max(3rem,calc(env(safe-area-inset-top,0px)+1.25rem))] pb-0 sm:pb-6 animate-in fade-in duration-200">
           {/* Backdrop oscuro con blur que congela y cubre toda la pantalla */}
           <div 
             className="fixed inset-0 bg-black/85 backdrop-blur-sm"
@@ -431,30 +431,31 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
             aria-hidden="true"
           />
 
-          {/* Tarjeta Modal / Sheet nativo con scroll táctil fluido y safe area respetada */}
+          {/* Tarjeta Modal / Sheet nativo con header fijo, body desplazable y footer fijado abajo */}
           <div 
-            className="relative z-10 w-full max-w-lg max-h-[calc(100dvh-env(safe-area-inset-top,0px)-0.75rem)] sm:max-h-[90vh] overflow-y-auto overscroll-contain bg-[#121514] border-t sm:border border-[#8E8C3A]/40 rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 pb-[calc(env(safe-area-inset-bottom,0px)+1.25rem)] sm:pb-6 text-white shadow-[0_20px_60px_rgba(0,0,0,0.95)]"
+            className="relative z-10 w-full max-w-lg h-[calc(100dvh-max(3rem,calc(env(safe-area-inset-top,0px)+1.25rem)))] sm:h-auto sm:max-h-[90vh] bg-[#121514] border-t sm:border border-[#8E8C3A]/40 rounded-t-3xl sm:rounded-2xl text-white shadow-[0_20px_60px_rgba(0,0,0,0.95)] flex flex-col overflow-hidden"
             role="dialog"
             aria-modal="true"
           >
-            {/* Botón Cerrar (X) */}
-            <button
-              onClick={handleCloseForm}
-              className="absolute right-4 top-4 sm:right-5 sm:top-5 text-zinc-400 hover:text-white p-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800/80 transition-colors z-20 flex items-center justify-center"
-              aria-label="Cerrar modal"
-            >
-              <X className="w-4 h-4" />
-            </button>
-
-            {/* Encabezado del Formulario */}
-            <div className="mb-4 pr-10">
+            {/* Encabezado fijo del Modal */}
+            <div className="p-4 sm:p-6 pb-3 border-b border-zinc-800/80 shrink-0 flex items-center justify-between">
               <h2 className="font-bebas text-2xl tracking-wide uppercase text-white leading-none">
                 {editingClass ? 'Editar Clase' : 'Crear Clase'}
               </h2>
+
+              <button
+                type="button"
+                onClick={handleCloseForm}
+                className="text-zinc-400 hover:text-white p-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800/80 transition-colors flex items-center justify-center cursor-pointer"
+                aria-label="Cerrar modal"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
 
-            {/* Formulario */}
-            <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Formulario con cuerpo scrolleable y barra de acciones anclada abajo */}
+            <form onSubmit={handleSubmit} className="flex-1 flex flex-col justify-between overflow-hidden">
+              <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6 space-y-4">
               {/* Nombre de la Clase */}
               <div>
                 <label className="block text-[11px] uppercase tracking-wider text-zinc-300 font-semibold mb-1.5 font-barlow">
@@ -705,8 +706,10 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
                 );
               })()}
 
-              {/* Botones de acción del formulario */}
-              <div className="flex gap-2 pt-2">
+              </div>
+
+              {/* Botones de acción del formulario fijados abajo */}
+              <div className="p-4 sm:p-6 pt-3 pb-[max(1.25rem,calc(env(safe-area-inset-bottom,0px)+0.75rem))] sm:pb-6 border-t border-zinc-800/80 bg-[#121514] shrink-0 flex gap-2">
                 <button
                   type="submit"
                   disabled={isInvalidPastToday || isSubmitting}
@@ -739,7 +742,7 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
       )}
       {/* MODAL DE FILTRO POR FECHA (CALENDARIO TÁCTICO) */}
       {showFilterCalendar && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-0 sm:p-6 pt-[calc(env(safe-area-inset-top,0px)+0.75rem)] pb-[env(safe-area-inset-bottom,0px)] sm:pb-6 animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-0 sm:p-6 pt-[max(3rem,calc(env(safe-area-inset-top,0px)+1.25rem))] pb-0 sm:pb-6 animate-in fade-in duration-200">
           <div
             className="fixed inset-0 bg-black/85 backdrop-blur-sm"
             onClick={() => setShowFilterCalendar(false)}
@@ -747,7 +750,7 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
           />
 
           <div
-            className="relative z-10 w-full max-w-md max-h-[calc(100dvh-env(safe-area-inset-top,0px)-0.75rem)] sm:max-h-[90vh] overflow-y-auto overscroll-contain bg-[#121514] border-t sm:border border-[#8E8C3A]/40 rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 pb-[calc(env(safe-area-inset-bottom,0px)+1.25rem)] sm:pb-6 text-white shadow-[0_20px_60px_rgba(0,0,0,0.95)]"
+            className="relative z-10 w-full max-w-md max-h-[calc(100dvh-max(3rem,calc(env(safe-area-inset-top,0px)+1.25rem)))] sm:max-h-[90vh] overflow-y-auto overscroll-contain bg-[#121514] border-t sm:border border-[#8E8C3A]/40 rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 pb-[max(1.25rem,calc(env(safe-area-inset-bottom,0px)+0.75rem))] sm:pb-6 text-white shadow-[0_20px_60px_rgba(0,0,0,0.95)]"
             role="dialog"
             aria-modal="true"
           >
