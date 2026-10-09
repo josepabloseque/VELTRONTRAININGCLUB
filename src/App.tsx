@@ -1055,52 +1055,52 @@ const Dashboard: React.FC = () => {
       </main>
 
       {/* Navegación Móvil Inferior Táctica y Ergonómica (Estándar Nativo iOS/Android) */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[#0A0C0B]/95 backdrop-blur-lg border-t border-zinc-900 px-2 pt-1.5 pb-[max(0.25rem,calc(env(safe-area-inset-bottom,0px)*0.5))] shadow-[0_-10px_30px_rgba(0,0,0,0.8)]">
+      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[#0A0C0B]/95 backdrop-blur-lg border-t border-zinc-900 px-2 pt-2 pb-[max(0.75rem,calc(env(safe-area-inset-bottom,0px)*0.65))] shadow-[0_-10px_30px_rgba(0,0,0,0.8)]">
         <div className="max-w-md mx-auto flex items-stretch">
           <button
             type="button"
             onClick={() => setActiveTab('inicio')}
-            className={`flex-1 flex flex-col items-center justify-center py-1 px-1 gap-0.5 transition-all active:scale-95 cursor-pointer rounded-xl select-none min-h-[44px] ${
+            className={`flex-1 flex flex-col items-center justify-center py-1.5 px-1 gap-1 transition-all active:scale-95 cursor-pointer rounded-xl select-none min-h-[50px] ${
               activeTab === 'inicio' ? 'text-[#B5B04E] font-bold' : 'text-zinc-400 hover:text-zinc-200 font-medium'
             }`}
           >
-            <House className={`w-5 h-5 sm:w-6 sm:h-6 ${activeTab === 'inicio' ? 'stroke-[2.5] text-[#B5B04E]' : 'stroke-[2]'}`} />
-            <span className="text-[11px] font-barlow tracking-wider leading-none">Inicio</span>
+            <House className={`w-6 h-6 ${activeTab === 'inicio' ? 'stroke-[2.5] text-[#B5B04E]' : 'stroke-[2]'}`} />
+            <span className="text-xs font-barlow tracking-wider leading-none">Inicio</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab('clases')}
-            className={`flex-1 flex flex-col items-center justify-center py-1 px-1 gap-0.5 transition-all active:scale-95 cursor-pointer rounded-xl select-none min-h-[44px] ${
-              activeTab === 'clases' ? 'text-[#B5B04E] font-bold' : 'text-zinc-400 hover:text-zinc-200'
+            className={`flex-1 flex flex-col items-center justify-center py-1.5 px-1 gap-1 transition-all active:scale-95 cursor-pointer rounded-xl select-none min-h-[50px] ${
+              activeTab === 'clases' ? 'text-[#B5B04E] font-bold' : 'text-zinc-400 hover:text-zinc-200 font-medium'
             }`}
           >
-            <CalendarCustomIcon className={`w-5 h-5 sm:w-6 sm:h-6 ${activeTab === 'clases' ? 'stroke-[2.2] text-[#B5B04E]' : 'stroke-[1.8]'}`} />
-            <span className="text-[11px] font-barlow tracking-wider leading-none">Clases</span>
+            <CalendarCustomIcon className={`w-6 h-6 ${activeTab === 'clases' ? 'stroke-[2.2] text-[#B5B04E]' : 'stroke-[1.8]'}`} />
+            <span className="text-xs font-barlow tracking-wider leading-none">Clases</span>
           </button>
 
           {isAdmin && (
             <button
               type="button"
               onClick={() => setActiveTab('membresias')}
-              className={`flex-1 flex flex-col items-center justify-center py-1 px-1 gap-0.5 transition-all active:scale-95 cursor-pointer rounded-xl select-none min-h-[44px] ${
-                activeTab === 'membresias' ? 'text-[#B5B04E] font-bold' : 'text-zinc-400 hover:text-zinc-200'
+              className={`flex-1 flex flex-col items-center justify-center py-1.5 px-1 gap-1 transition-all active:scale-95 cursor-pointer rounded-xl select-none min-h-[50px] ${
+                activeTab === 'membresias' ? 'text-[#B5B04E] font-bold' : 'text-zinc-400 hover:text-zinc-200 font-medium'
               }`}
             >
-              <AccesosCustomIcon className={`w-5 h-5 sm:w-6 sm:h-6 ${activeTab === 'membresias' ? 'text-[#B5B04E]' : ''}`} />
-              <span className="text-[11px] font-barlow tracking-wider leading-none">Membresías</span>
+              <AccesosCustomIcon className={`w-6 h-6 ${activeTab === 'membresias' ? 'text-[#B5B04E]' : ''}`} />
+              <span className="text-xs font-barlow tracking-wider leading-none">Membresías</span>
             </button>
           )}
 
           <button
             type="button"
             onClick={() => setActiveTab('perfil')}
-            className={`flex-1 flex flex-col items-center justify-center py-1 px-1 gap-0.5 transition-all active:scale-95 cursor-pointer rounded-xl select-none min-h-[44px] ${
-              activeTab === 'perfil' ? 'text-[#B5B04E] font-bold' : 'text-zinc-400 hover:text-zinc-200'
+            className={`flex-1 flex flex-col items-center justify-center py-1.5 px-1 gap-1 transition-all active:scale-95 cursor-pointer rounded-xl select-none min-h-[50px] ${
+              activeTab === 'perfil' ? 'text-[#B5B04E] font-bold' : 'text-zinc-400 hover:text-zinc-200 font-medium'
             }`}
           >
-            <User className={`w-5 h-5 sm:w-6 sm:h-6 ${activeTab === 'perfil' ? 'stroke-[2.5] text-[#B5B04E]' : 'stroke-[2]'}`} />
-            <span className="text-[11px] font-barlow tracking-wider leading-none">Perfil</span>
+            <User className={`w-6 h-6 ${activeTab === 'perfil' ? 'stroke-[2.5] text-[#B5B04E]' : 'stroke-[2]'}`} />
+            <span className="text-xs font-barlow tracking-wider leading-none">Perfil</span>
           </button>
         </div>
       </nav>
