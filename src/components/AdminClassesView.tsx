@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Trash2, CheckCircle2, ChevronRight, X, Plus, Calendar as CalendarIcon } from 'lucide-react';
+import { Trash2, CheckCircle2, ChevronRight, X, Plus, Calendar as CalendarIcon, ArrowLeft } from 'lucide-react';
 import { Calendar } from './ui/Calendar';
 import {
   AlertDialog,
@@ -96,7 +96,7 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
   };
 
   useEffect(() => {
-    if (showForm || showFilterCalendar || classToDelete) {
+    if (showFilterCalendar || classToDelete) {
       document.body.style.overflow = 'hidden';
       document.documentElement.style.overflow = 'hidden';
     } else {
@@ -107,7 +107,7 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
       document.body.style.overflow = '';
       document.documentElement.style.overflow = '';
     };
-  }, [showForm, showFilterCalendar, classToDelete]);
+  }, [showFilterCalendar, classToDelete]);
 
   const resetFormFields = () => {
     setTitle('Clases Dirigidas');
@@ -228,6 +228,326 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
     (c) => !c.title.toLowerCase().includes('libre') && (c.capacity || 0) < 900
   );
 
+  // Si showForm está activo, se renderiza la Sub-Pantalla Dedicada a pantalla completa
+  if (showForm) {
+    return (
+      <section className="space-y-4 animate-in fade-in slide-in-from-right-2 duration-200">
+        {/* Barra superior de navegación de la Sub-Pantalla */}
+        <div className="flex items-center justify-between pb-2 border-b border-zinc-800/80">
+          <button
+            type="button"
+            onClick={handleCloseForm}
+            className="flex items-center gap-1.5 text-zinc-400 hover:text-white font-barlow text-sm font-semibold transition-colors active:scale-95 cursor-pointer py-1.5 px-2.5 -ml-2 rounded-xl hover:bg-zinc-900"
+          >
+            <ArrowLeft className="w-4 h-4 text-[#B5B04E]" />
+            <span>Volver</span>
+          </button>
+
+          <h2 className="font-bebas text-xl sm:text-2xl tracking-wide uppercase text-white leading-none">
+            {editingClass ? 'Editar Clase' : 'Crear Clase'}
+          </h2>
+
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={isInvalidPastToday || isSubmitting}
+            className={`font-bebas text-xs sm:text-sm tracking-wider uppercase px-3.5 py-1.5 rounded-xl transition-all ${
+              isInvalidPastToday || isSubmitting
+                ? 'text-zinc-600 bg-zinc-900 border border-zinc-800 cursor-not-allowed'
+                : 'bg-[#8E8C3A] hover:bg-[#B5B04E] text-black active:scale-95 shadow-sm font-bold cursor-pointer'
+            }`}
+          >
+            {editingClass ? 'Guardar' : 'Publicar'}
+          </button>
+        </div>
+
+        {/* Formulario Dedicado con scroll y diseño nativo */}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="bg-[#121514] border border-zinc-800/80 rounded-2xl p-4 sm:p-5 space-y-4 shadow-sm">
+            {/* Nombre de la Clase */}
+            <div>
+              <label className="block text-xs uppercase tracking-wider text-zinc-300 font-semibold mb-1.5 font-barlow">
+                Nombre de la Clase
+              </label>
+              <input
+                type="text"
+                required
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Ej. Clases Dirigidas / Entrenamiento Libre"
+                className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2.5 px-3.5 text-base sm:text-sm text-white placeholder-zinc-500 focus:outline-none transition-colors font-barlow"
+              />
+            </div>
+
+            {/* Selector de Fecha: Calendario */}
+            <div className="space-y-1.5">
+              <label className="block text-xs uppercase tracking-wider text-zinc-300 font-semibold font-barlow">
+                Día de la Clase
+              </label>
+              <Calendar
+                selected={selectedDate}
+                onSelect={(d) => setSelectedDate(d)}
+                minDate={todayStr}
+              />
+            </div>
+
+            {/* Horario Selector Dividido y Cupos */}
+            {(() => {
+              const isFormFree =
+                title.toLowerCase().includes('libre') ||
+                (editingClass && (editingClass.capacity || 0) >= 900) ||
+                Number(capacity) >= 900;
+
+              if (isFormFree) {
+                return (
+                  <div className="space-y-3.5">
+                    {/* Hora de Inicio */}
+                    <div className="space-y-1.5">
+                      <label className="block text-xs uppercase tracking-wider text-zinc-300 font-semibold font-barlow">
+                        Hora de Inicio ({hour}:{minute} {period})
+                      </label>
+                      <div className="grid grid-cols-3 gap-1.5">
+                        <select
+                          value={hour}
+                          onChange={(e) => setHour(e.target.value)}
+                          className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2 px-2 text-base sm:text-xs text-white focus:outline-none transition-colors font-mono text-center cursor-pointer"
+                          title="Hora de inicio"
+                        >
+                          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((h) => (
+                            <option key={`start-${h}`} value={String(h)}>
+                              {h}
+                            </option>
+                          ))}
+                        </select>
+
+                        <select
+                          value={minute}
+                          onChange={(e) => setMinute(e.target.value)}
+                          className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2 px-2 text-base sm:text-xs text-white focus:outline-none transition-colors font-mono text-center cursor-pointer"
+                          title="Minutos de inicio"
+                        >
+                          {['00', '15', '30', '45'].map((m) => (
+                            <option key={`start-m-${m}`} value={m}>
+                              :{m}
+                            </option>
+                          ))}
+                        </select>
+
+                        <div className="flex rounded-xl bg-[#0A0C0B] border border-zinc-800 p-0.5">
+                          <button
+                            type="button"
+                            onClick={() => setPeriod('AM')}
+                            className={`flex-1 rounded-lg text-xs font-mono font-bold transition-all py-1.5 cursor-pointer ${
+                              period === 'AM'
+                                ? 'bg-[#8E8C3A] text-black shadow-sm'
+                                : 'text-zinc-400 hover:text-white'
+                            }`}
+                          >
+                            AM
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setPeriod('PM')}
+                            className={`flex-1 rounded-lg text-xs font-mono font-bold transition-all py-1.5 cursor-pointer ${
+                              period === 'PM'
+                                ? 'bg-[#8E8C3A] text-black shadow-sm'
+                                : 'text-zinc-400 hover:text-white'
+                            }`}
+                          >
+                            PM
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Hora de Finalización */}
+                    <div className="space-y-1.5">
+                      <label className="block text-xs uppercase tracking-wider text-zinc-300 font-semibold font-barlow">
+                        Hora de Finalización ({endHour}:{endMinute} {endPeriod})
+                      </label>
+                      <div className="grid grid-cols-3 gap-1.5">
+                        <select
+                          value={endHour}
+                          onChange={(e) => setEndHour(e.target.value)}
+                          className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2 px-2 text-base sm:text-xs text-white focus:outline-none transition-colors font-mono text-center cursor-pointer"
+                          title="Hora de finalización"
+                        >
+                          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((h) => (
+                            <option key={`end-${h}`} value={String(h)}>
+                              {h}
+                            </option>
+                          ))}
+                        </select>
+
+                        <select
+                          value={endMinute}
+                          onChange={(e) => setEndMinute(e.target.value)}
+                          className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2 px-2 text-base sm:text-xs text-white focus:outline-none transition-colors font-mono text-center cursor-pointer"
+                          title="Minutos de finalización"
+                        >
+                          {['00', '15', '30', '45'].map((m) => (
+                            <option key={`end-m-${m}`} value={m}>
+                              :{m}
+                            </option>
+                          ))}
+                        </select>
+
+                        <div className="flex rounded-xl bg-[#0A0C0B] border border-zinc-800 p-0.5">
+                          <button
+                            type="button"
+                            onClick={() => setEndPeriod('AM')}
+                            className={`flex-1 rounded-lg text-xs font-mono font-bold transition-all py-1.5 cursor-pointer ${
+                              endPeriod === 'AM'
+                                ? 'bg-[#8E8C3A] text-black shadow-sm'
+                                : 'text-zinc-400 hover:text-white'
+                            }`}
+                          >
+                            AM
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEndPeriod('PM')}
+                            className={`flex-1 rounded-lg text-xs font-mono font-bold transition-all py-1.5 cursor-pointer ${
+                              endPeriod === 'PM'
+                                ? 'bg-[#8E8C3A] text-black shadow-sm'
+                                : 'text-zinc-400 hover:text-white'
+                            }`}
+                          >
+                            PM
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+
+              return (
+                <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
+                  {/* Horario: Hora, Minutos, AM/PM */}
+                  <div className="space-y-1.5">
+                    <label className="block text-xs uppercase tracking-wider text-zinc-300 font-semibold font-barlow">
+                      Horario ({hour}:{minute} {period})
+                    </label>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      <select
+                        value={hour}
+                        onChange={(e) => setHour(e.target.value)}
+                        className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2 px-2 text-base sm:text-xs text-white focus:outline-none transition-colors font-mono text-center cursor-pointer"
+                        title="Selecciona la hora"
+                      >
+                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((h) => (
+                          <option key={h} value={String(h)}>
+                            {h}
+                          </option>
+                        ))}
+                      </select>
+
+                      <select
+                        value={minute}
+                        onChange={(e) => setMinute(e.target.value)}
+                        className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2 px-2 text-base sm:text-xs text-white focus:outline-none transition-colors font-mono text-center cursor-pointer"
+                        title="Selecciona los minutos"
+                      >
+                        {['00', '15', '30', '45'].map((m) => (
+                          <option key={m} value={m}>
+                            :{m}
+                          </option>
+                        ))}
+                      </select>
+
+                      <div className="flex rounded-xl bg-[#0A0C0B] border border-zinc-800 p-0.5">
+                        <button
+                          type="button"
+                          onClick={() => setPeriod('AM')}
+                          className={`flex-1 rounded-lg text-xs font-mono font-bold transition-all py-1.5 cursor-pointer ${
+                            period === 'AM'
+                              ? 'bg-[#8E8C3A] text-black shadow-sm'
+                              : 'text-zinc-400 hover:text-white'
+                          }`}
+                        >
+                          AM
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPeriod('PM')}
+                          className={`flex-1 rounded-lg text-xs font-mono font-bold transition-all py-1.5 cursor-pointer ${
+                            period === 'PM'
+                              ? 'bg-[#8E8C3A] text-black shadow-sm'
+                              : 'text-zinc-400 hover:text-white'
+                          }`}
+                        >
+                          PM
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Cupos (solo para clases dirigidas) */}
+                  <div className="space-y-1.5">
+                    <label className="block text-xs uppercase tracking-wider text-zinc-300 font-semibold font-barlow">
+                      Cupos Máximos
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="50"
+                      value={capacity}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === '') {
+                          setCapacity('');
+                        } else {
+                          const num = parseInt(val, 10);
+                          setCapacity(isNaN(num) ? '' : num);
+                        }
+                      }}
+                      onBlur={() => {
+                        if (capacity === '' || Number(capacity) < 1) {
+                          setCapacity(14);
+                        }
+                      }}
+                      className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2 px-3 text-center text-base sm:text-xs font-mono text-white focus:outline-none transition-colors"
+                    />
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+
+          {/* Botones de acción inferiores */}
+          <div className="flex gap-2.5 pt-2">
+            <button
+              type="submit"
+              disabled={isInvalidPastToday || isSubmitting}
+              className={`flex-1 py-3.5 font-bebas text-base sm:text-lg tracking-wider uppercase rounded-xl transition-all leading-none ${
+                isInvalidPastToday || isSubmitting
+                  ? 'bg-zinc-900 border border-zinc-800 text-zinc-500 cursor-not-allowed opacity-60'
+                  : 'bg-[#8E8C3A] hover:bg-[#B5B04E] text-black shadow-[0_0_15px_rgba(142,140,58,0.25)] active:scale-[0.98] cursor-pointer'
+              }`}
+            >
+              {isInvalidPastToday
+                ? 'Horario Pasado'
+                : isSubmitting
+                ? 'Guardando...'
+                : editingClass
+                ? 'Guardar Cambios'
+                : 'Guardar y Publicar Clase'}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleCloseForm}
+              className="py-3.5 px-6 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-300 font-bebas text-base sm:text-lg tracking-wider uppercase rounded-xl transition-all active:scale-95 cursor-pointer"
+            >
+              Cancelar
+            </button>
+          </div>
+        </form>
+      </section>
+    );
+  }
+
   return (
     <section className="space-y-4">
       {/* Alerta de éxito */}
@@ -320,7 +640,7 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
                               e.stopPropagation();
                               setClassToDelete(item);
                             }}
-                            className="p-1 text-zinc-500 hover:text-red-400 hover:bg-red-500/10 rounded-md transition-colors"
+                            className="p-1 text-zinc-500 hover:text-red-400 hover:bg-red-500/10 rounded-md transition-colors cursor-pointer"
                             title="Eliminar horario"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -399,7 +719,7 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
                               e.stopPropagation();
                               setClassToDelete(item);
                             }}
-                            className="p-1.5 text-zinc-500 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/30 rounded-lg transition-colors"
+                            className="p-1.5 text-zinc-500 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/30 rounded-lg transition-colors cursor-pointer"
                             title="Eliminar clase"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -408,7 +728,7 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
                           {/* Acción Editar */}
                           <div className="flex items-center gap-1 text-zinc-400 group-hover:text-[#B5B04E] transition-colors text-[10px] font-semibold uppercase tracking-wider font-barlow">
                             <span>Editar</span>
-                            <ChevronRight className="w-3.5 h-3.5" />
+                            <ChevronRight className="w-3 h-3" />
                           </div>
                         </div>
                       </div>
@@ -420,327 +740,6 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
           </div>
         )}
       </div>
-
-      {/* MODAL (AGREGAR / EDITAR CLASE) */}
-      {showForm && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-3 sm:p-6 pt-[calc(env(safe-area-inset-top,0px)+3.5rem)] pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)] animate-in fade-in duration-200">
-          {/* Backdrop oscuro con blur que congela y cubre toda la pantalla */}
-          <div 
-            className="fixed inset-0 bg-black/85 backdrop-blur-sm"
-            onClick={handleCloseForm}
-            aria-hidden="true"
-          />
-
-          {/* Tarjeta Modal con altura natural y sin franja oscura sobrante */}
-          <div 
-            className="relative z-10 w-full max-w-lg h-auto max-h-[calc(100dvh-env(safe-area-inset-top,0px)-4.5rem)] bg-[#121514] border border-[#8E8C3A]/40 rounded-3xl text-white shadow-[0_20px_60px_rgba(0,0,0,0.95)] flex flex-col overflow-hidden overscroll-contain"
-            role="dialog"
-            aria-modal="true"
-          >
-            {/* Encabezado fijo del Modal */}
-            <div className="p-4 sm:p-5 pb-3 border-b border-zinc-800/80 shrink-0 flex items-center justify-between">
-              <h2 className="font-bebas text-2xl tracking-wide uppercase text-white leading-none">
-                {editingClass ? 'Editar Clase' : 'Crear Clase'}
-              </h2>
-
-              <button
-                type="button"
-                onClick={handleCloseForm}
-                className="text-zinc-400 hover:text-white p-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800/80 transition-colors flex items-center justify-center cursor-pointer"
-                aria-label="Cerrar modal"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Formulario con cuerpo scrolleable y botones limpios */}
-            <form onSubmit={handleSubmit} className="flex-1 flex flex-col justify-between overflow-hidden">
-              <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-5 space-y-3.5">
-              {/* Nombre de la Clase */}
-              <div>
-                <label className="block text-[11px] uppercase tracking-wider text-zinc-300 font-semibold mb-1.5 font-barlow">
-                  Nombre de la Clase
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder=""
-                  className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2.5 px-3.5 text-base sm:text-sm text-white placeholder-zinc-500 focus:outline-none transition-colors font-barlow"
-                />
-              </div>
-
-              {/* Selector de Fecha: Calendario */}
-              <div className="space-y-1.5">
-                <label className="block text-[11px] uppercase tracking-wider text-zinc-300 font-semibold font-barlow">
-                  Día de la Clase
-                </label>
-                <Calendar
-                  selected={selectedDate}
-                  onSelect={(d) => setSelectedDate(d)}
-                  minDate={todayStr}
-                />
-              </div>
-
-              {/* Horario Selector Dividido y Cupos */}
-              {(() => {
-                const isFormFreeTraining = title.toLowerCase().includes('libre') || (editingClass && (editingClass.capacity || 0) >= 900) || Number(capacity) >= 900;
-
-                if (isFormFreeTraining) {
-                  return (
-                    <div className="space-y-3.5">
-                      {/* Hora de Inicio */}
-                      <div className="space-y-1.5">
-                        <label className="block text-[11px] uppercase tracking-wider text-zinc-300 font-semibold font-barlow">
-                          Hora de Inicio ({hour}:{minute} {period})
-                        </label>
-                        <div className="grid grid-cols-3 gap-1.5">
-                          <select
-                            value={hour}
-                            onChange={(e) => setHour(e.target.value)}
-                            className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2 px-2 text-base sm:text-xs text-white focus:outline-none transition-colors font-mono text-center cursor-pointer"
-                            title="Hora de inicio"
-                          >
-                            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((h) => (
-                              <option key={`start-${h}`} value={String(h)}>
-                                {h}
-                              </option>
-                            ))}
-                          </select>
-
-                          <select
-                            value={minute}
-                            onChange={(e) => setMinute(e.target.value)}
-                            className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2 px-2 text-base sm:text-xs text-white focus:outline-none transition-colors font-mono text-center cursor-pointer"
-                            title="Minutos de inicio"
-                          >
-                            {['00', '15', '30', '45'].map((m) => (
-                              <option key={`start-m-${m}`} value={m}>
-                                :{m}
-                              </option>
-                            ))}
-                          </select>
-
-                          <div className="flex rounded-xl bg-[#0A0C0B] border border-zinc-800 p-0.5">
-                            <button
-                              type="button"
-                              onClick={() => setPeriod('AM')}
-                              className={`flex-1 rounded-lg text-xs font-mono font-bold transition-all py-1.5 cursor-pointer ${
-                                period === 'AM'
-                                  ? 'bg-[#8E8C3A] text-black shadow-sm'
-                                  : 'text-zinc-400 hover:text-white'
-                              }`}
-                            >
-                              AM
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setPeriod('PM')}
-                              className={`flex-1 rounded-lg text-xs font-mono font-bold transition-all py-1.5 cursor-pointer ${
-                                period === 'PM'
-                                  ? 'bg-[#8E8C3A] text-black shadow-sm'
-                                  : 'text-zinc-400 hover:text-white'
-                              }`}
-                            >
-                              PM
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Hora de Finalización */}
-                      <div className="space-y-1.5">
-                        <label className="block text-[11px] uppercase tracking-wider text-zinc-300 font-semibold font-barlow">
-                          Hora de Finalización ({endHour}:{endMinute} {endPeriod})
-                        </label>
-                        <div className="grid grid-cols-3 gap-1.5">
-                          <select
-                            value={endHour}
-                            onChange={(e) => setEndHour(e.target.value)}
-                            className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2 px-2 text-base sm:text-xs text-white focus:outline-none transition-colors font-mono text-center cursor-pointer"
-                            title="Hora de finalización"
-                          >
-                            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((h) => (
-                              <option key={`end-${h}`} value={String(h)}>
-                                {h}
-                              </option>
-                            ))}
-                          </select>
-
-                          <select
-                            value={endMinute}
-                            onChange={(e) => setEndMinute(e.target.value)}
-                            className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2 px-2 text-base sm:text-xs text-white focus:outline-none transition-colors font-mono text-center cursor-pointer"
-                            title="Minutos de finalización"
-                          >
-                            {['00', '15', '30', '45'].map((m) => (
-                              <option key={`end-m-${m}`} value={m}>
-                                :{m}
-                              </option>
-                            ))}
-                          </select>
-
-                          <div className="flex rounded-xl bg-[#0A0C0B] border border-zinc-800 p-0.5">
-                            <button
-                              type="button"
-                              onClick={() => setEndPeriod('AM')}
-                              className={`flex-1 rounded-lg text-xs font-mono font-bold transition-all py-1.5 cursor-pointer ${
-                                endPeriod === 'AM'
-                                  ? 'bg-[#8E8C3A] text-black shadow-sm'
-                                  : 'text-zinc-400 hover:text-white'
-                              }`}
-                            >
-                              AM
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setEndPeriod('PM')}
-                              className={`flex-1 rounded-lg text-xs font-mono font-bold transition-all py-1.5 cursor-pointer ${
-                                endPeriod === 'PM'
-                                  ? 'bg-[#8E8C3A] text-black shadow-sm'
-                                  : 'text-zinc-400 hover:text-white'
-                              }`}
-                            >
-                              PM
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                }
-
-                return (
-                  <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
-                    {/* Horario: Hora, Minutos, AM/PM */}
-                    <div className="space-y-1.5">
-                      <label className="block text-[11px] uppercase tracking-wider text-zinc-300 font-semibold font-barlow">
-                        Horario ({hour}:{minute} {period})
-                      </label>
-                      <div className="grid grid-cols-3 gap-1.5">
-                        {/* Hora sin ceros iniciales */}
-                        <select
-                          value={hour}
-                          onChange={(e) => setHour(e.target.value)}
-                          className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2 px-2 text-base sm:text-xs text-white focus:outline-none transition-colors font-mono text-center cursor-pointer"
-                          title="Selecciona la hora"
-                        >
-                          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((h) => (
-                            <option key={h} value={String(h)}>
-                              {h}
-                            </option>
-                          ))}
-                        </select>
-
-                        {/* Minutos */}
-                        <select
-                          value={minute}
-                          onChange={(e) => setMinute(e.target.value)}
-                          className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2 px-2 text-base sm:text-xs text-white focus:outline-none transition-colors font-mono text-center cursor-pointer"
-                          title="Selecciona los minutos"
-                        >
-                          {['00', '15', '30', '45'].map((m) => (
-                            <option key={m} value={m}>
-                              :{m}
-                            </option>
-                          ))}
-                        </select>
-
-                        {/* Toggle AM / PM */}
-                        <div className="flex rounded-xl bg-[#0A0C0B] border border-zinc-800 p-0.5">
-                          <button
-                            type="button"
-                            onClick={() => setPeriod('AM')}
-                            className={`flex-1 rounded-lg text-xs font-mono font-bold transition-all py-1.5 cursor-pointer ${
-                              period === 'AM'
-                                ? 'bg-[#8E8C3A] text-black shadow-sm'
-                                : 'text-zinc-400 hover:text-white'
-                            }`}
-                          >
-                            AM
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setPeriod('PM')}
-                            className={`flex-1 rounded-lg text-xs font-mono font-bold transition-all py-1.5 cursor-pointer ${
-                              period === 'PM'
-                                ? 'bg-[#8E8C3A] text-black shadow-sm'
-                                : 'text-zinc-400 hover:text-white'
-                            }`}
-                          >
-                            PM
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Cupos (solo para clases dirigidas) */}
-                    <div className="space-y-1.5">
-                      <label className="block text-[11px] uppercase tracking-wider text-zinc-300 font-semibold font-barlow">
-                        Cupos Máximos
-                      </label>
-                      <input
-                        type="number"
-                        min="1"
-                        max="50"
-                        value={capacity}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          if (val === '') {
-                            setCapacity('');
-                          } else {
-                            const num = parseInt(val, 10);
-                            setCapacity(isNaN(num) ? '' : num);
-                          }
-                        }}
-                        onBlur={() => {
-                          if (capacity === '' || Number(capacity) < 1) {
-                            setCapacity(14);
-                          }
-                        }}
-                        className="w-full bg-[#0A0C0B] border border-zinc-800 focus:border-[#8E8C3A] rounded-xl py-2 px-3 text-center text-base sm:text-xs font-mono text-white focus:outline-none transition-colors"
-                      />
-                    </div>
-                  </div>
-                );
-              })()}
-
-              </div>
-
-              {/* Botones de acción del formulario fijados abajo */}
-              <div className="p-4 sm:p-6 pt-3 pb-[max(1.25rem,calc(env(safe-area-inset-bottom,0px)+0.75rem))] sm:pb-6 border-t border-zinc-800/80 bg-[#121514] shrink-0 flex gap-2">
-                <button
-                  type="submit"
-                  disabled={isInvalidPastToday || isSubmitting}
-                  className={`flex-1 py-3 font-bebas text-base tracking-wider uppercase rounded-xl transition-all leading-none ${
-                    isInvalidPastToday || isSubmitting
-                      ? 'bg-zinc-900 border border-zinc-800 text-zinc-500 cursor-not-allowed opacity-60'
-                      : 'bg-[#8E8C3A] hover:bg-[#B5B04E] text-black shadow-[0_0_15px_rgba(142,140,58,0.25)] active:scale-[0.98]'
-                  }`}
-                >
-                  {isInvalidPastToday
-                    ? 'Horario Pasado'
-                    : isSubmitting
-                    ? 'Guardando...'
-                    : editingClass
-                    ? 'Guardar Cambios'
-                    : 'Guardar y Publicar Clase'}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleCloseForm}
-                  className="py-3 px-5 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-300 font-bebas text-base tracking-wider uppercase rounded-xl transition-all"
-                >
-                  Cancelar
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-      {/* MODAL DE FILTRO POR FECHA (CALENDARIO TÁCTICO) */}
       {showFilterCalendar && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-3 sm:p-6 pt-[calc(env(safe-area-inset-top,0px)+3.5rem)] pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)] animate-in fade-in duration-200">
           <div
