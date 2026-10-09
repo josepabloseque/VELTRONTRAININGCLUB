@@ -403,7 +403,7 @@ export const AdminAccessView: React.FC<AdminAccessViewProps> = ({ onMembershipUp
 
         return createPortal(
         <div 
-          className="fixed inset-0 z-[9999] flex items-center justify-center p-4 touch-none overscroll-none"
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 pt-[calc(env(safe-area-inset-top,0px)+1rem)] pb-[calc(env(safe-area-inset-bottom,0px)+1rem)] touch-none overscroll-none"
           onTouchMove={(e) => {
             if (e.target === e.currentTarget) e.preventDefault();
           }}
@@ -415,7 +415,7 @@ export const AdminAccessView: React.FC<AdminAccessViewProps> = ({ onMembershipUp
           />
 
           <div 
-            className="relative w-full max-w-md bg-[#121514] border border-zinc-800 rounded-2xl p-5 sm:p-6 shadow-2xl space-y-5 z-10 max-h-[90vh] overflow-y-auto overscroll-contain"
+            className="relative w-full max-w-md bg-[#121514] border border-zinc-800 rounded-2xl p-5 sm:p-6 shadow-2xl space-y-5 z-10 max-h-[calc(100dvh-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px)-2rem)] overflow-y-auto overscroll-contain"
             onTouchMove={(e) => e.stopPropagation()}
           >
             {/* Botón Cerrar (X) anclado en esquina */}

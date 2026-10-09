@@ -423,7 +423,7 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
 
       {/* MODAL FLOTANTE CENTRADO (AGREGAR / EDITAR CLASE) */}
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 pt-[calc(env(safe-area-inset-top,0px)+1rem)] pb-[calc(env(safe-area-inset-bottom,0px)+1rem)] animate-in fade-in duration-200">
           {/* Backdrop oscuro con blur que congela y cubre toda la pantalla */}
           <div 
             className="fixed inset-0 bg-black/85 backdrop-blur-sm"
@@ -431,9 +431,9 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
             aria-hidden="true"
           />
 
-          {/* Tarjeta Modal */}
+          {/* Tarjeta Modal con scroll táctil fluido y safe area respetada */}
           <div 
-            className="relative z-10 w-full max-w-lg max-h-[90vh] overflow-y-auto bg-[#121514] border border-[#8E8C3A]/40 rounded-2xl p-5 sm:p-6 text-white shadow-[0_20px_60px_rgba(0,0,0,0.95)]"
+            className="relative z-10 w-full max-w-lg max-h-[calc(100dvh-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px)-2rem)] overflow-y-auto overscroll-contain bg-[#121514] border border-[#8E8C3A]/40 rounded-2xl p-5 sm:p-6 text-white shadow-[0_20px_60px_rgba(0,0,0,0.95)]"
             role="dialog"
             aria-modal="true"
           >
@@ -739,7 +739,7 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
       )}
       {/* MODAL DE FILTRO POR FECHA (CALENDARIO TÁCTICO) */}
       {showFilterCalendar && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-6 pt-[calc(env(safe-area-inset-top,0px)+1rem)] pb-[calc(env(safe-area-inset-bottom,0px)+1rem)] animate-in fade-in duration-200">
           <div
             className="fixed inset-0 bg-black/85 backdrop-blur-sm"
             onClick={() => setShowFilterCalendar(false)}
@@ -747,7 +747,7 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
           />
 
           <div
-            className="relative z-10 w-full max-w-md bg-[#121514] border border-[#8E8C3A]/40 rounded-2xl p-5 sm:p-6 text-white shadow-[0_20px_60px_rgba(0,0,0,0.95)]"
+            className="relative z-10 w-full max-w-md max-h-[calc(100dvh-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px)-2rem)] overflow-y-auto overscroll-contain bg-[#121514] border border-[#8E8C3A]/40 rounded-2xl p-5 sm:p-6 text-white shadow-[0_20px_60px_rgba(0,0,0,0.95)]"
             role="dialog"
             aria-modal="true"
           >

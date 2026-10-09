@@ -88,7 +88,7 @@ export const ClassDetailsModal: React.FC<ClassDetailsModalProps> = ({
   const isToday = selectedClass.date === todayStr;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 pt-[calc(env(safe-area-inset-top,0px)+1rem)] pb-[calc(env(safe-area-inset-bottom,0px)+1rem)]">
       <div 
         className="fixed inset-0 bg-black/85 backdrop-blur-sm"
         onClick={onClose}
@@ -96,7 +96,7 @@ export const ClassDetailsModal: React.FC<ClassDetailsModalProps> = ({
       />
 
       <div 
-        className="relative z-10 w-full max-w-md max-h-[90vh] overflow-y-auto bg-[#121514] border border-[#8E8C3A]/40 rounded-2xl p-6 sm:p-7 text-white shadow-[0_20px_60px_rgba(0,0,0,0.95)]"
+        className="relative z-10 w-full max-w-md max-h-[calc(100dvh-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px)-2rem)] overflow-y-auto overscroll-contain bg-[#121514] border border-[#8E8C3A]/40 rounded-2xl p-5 sm:p-7 text-white shadow-[0_20px_60px_rgba(0,0,0,0.95)]"
         role="dialog"
         aria-modal="true"
       >
