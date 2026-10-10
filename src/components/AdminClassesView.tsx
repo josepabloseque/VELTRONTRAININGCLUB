@@ -742,7 +742,7 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
       )}
       {/* MODAL DE FILTRO POR FECHA (CALENDARIO TÁCTICO) */}
       {showFilterCalendar && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-3 sm:p-6 pt-[calc(env(safe-area-inset-top,0px)+3.5rem)] pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)] animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200">
           <div
             className="fixed inset-0 bg-black/85 backdrop-blur-sm"
             onClick={() => setShowFilterCalendar(false)}
@@ -750,7 +750,7 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
           />
 
           <div
-            className="relative z-10 w-full max-w-md h-auto max-h-[calc(100dvh-env(safe-area-inset-top,0px)-4.5rem)] overflow-y-auto overscroll-contain bg-[#121514] border border-[#8E8C3A]/40 rounded-3xl p-5 sm:p-6 text-white shadow-[0_20px_60px_rgba(0,0,0,0.95)]"
+            className="relative z-10 w-full max-w-sm sm:max-w-md h-auto max-h-[90dvh] overflow-y-auto overscroll-contain bg-[#121514] border border-[#8E8C3A]/40 rounded-3xl p-5 sm:p-6 text-white shadow-[0_20px_60px_rgba(0,0,0,0.95)]"
             role="dialog"
             aria-modal="true"
           >
