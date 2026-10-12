@@ -23,7 +23,7 @@ import {
   ChevronRight,
   Plus
 } from 'lucide-react';
-import { reserveClass, cancelClassBooking } from './services/bookings.service';
+import { reserveClass, cancelClassBooking, prefetchClassesAttendees } from './services/bookings.service';
 
 // Custom Logout Icon solicitado
 const LogoutCustomIcon: React.FC<{ className?: string }> = ({ className = 'w-5 h-5' }) => (
@@ -183,6 +183,9 @@ const Dashboard: React.FC = () => {
         }));
         const sorted = mapped.slice().sort(compareClassesChronological);
         setClasses(sorted);
+        if (isAdmin && sorted.length > 0) {
+          prefetchClassesAttendees(sorted.map((c) => c.id));
+        }
         setSelectedClass((prev) => {
           if (!prev) return null;
           // Si el usuario tiene una acción local activa en esta clase, proteger el número optimista

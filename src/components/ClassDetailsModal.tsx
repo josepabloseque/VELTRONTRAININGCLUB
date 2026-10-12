@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Clock, Users, Calendar } from 'lucide-react';
 import type { TrainingClass } from '../types/database';
 import { isClassPast } from '../lib/dateUtils';
-import { fetchClassAttendees, type ClassAttendee } from '../services/bookings.service';
+import { fetchClassAttendees, getCachedAttendees, type ClassAttendee } from '../services/bookings.service';
 
 interface ClassDetailsModalProps {
   isOpen: boolean;
@@ -39,9 +39,6 @@ const getTitleClass = (title: string) => {
   return 'text-2xl sm:text-3xl tracking-wide';
 };
 
-// Caché en memoria para carga instantánea sin flasheos ni saltos
-const memoryAttendeesCache = new Map<string, ClassAttendee[]>();
-
 export const ClassDetailsModal: React.FC<ClassDetailsModalProps> = ({
   isOpen,
   onClose,
@@ -53,13 +50,30 @@ export const ClassDetailsModal: React.FC<ClassDetailsModalProps> = ({
   isBookingLoading = false,
   onToggleBooking,
 }) => {
+  const [loadedClassId, setLoadedClassId] = useState<string | null>(selectedClass?.id ?? null);
   const [attendees, setAttendees] = useState<ClassAttendee[]>(() => {
-    if (selectedClass && memoryAttendeesCache.has(selectedClass.id)) {
-      return memoryAttendeesCache.get(selectedClass.id)!;
+    if (selectedClass) {
+      return getCachedAttendees(selectedClass.id) ?? [];
     }
     return [];
   });
   const [loadingAttendees, setLoadingAttendees] = useState(false);
+
+  // Sincronización inmediata antes del primer pintado al cambiar de clase
+  if (selectedClass && loadedClassId !== selectedClass.id) {
+    const cached = getCachedAttendees(selectedClass.id);
+    setLoadedClassId(selectedClass.id);
+    if ((selectedClass.bookedCount || 0) === 0) {
+      setAttendees([]);
+      setLoadingAttendees(false);
+    } else if (cached !== undefined) {
+      setAttendees(cached);
+      setLoadingAttendees(false);
+    } else {
+      setAttendees([]);
+      setLoadingAttendees(true);
+    }
+  }
 
   useEffect(() => {
     if (isOpen) {
@@ -76,26 +90,42 @@ export const ClassDetailsModal: React.FC<ClassDetailsModalProps> = ({
   }, [isOpen]);
 
   useEffect(() => {
-    if (isOpen && selectedClass && isAdmin) {
-      const cached = memoryAttendeesCache.get(selectedClass.id);
-      if (cached) {
-        setAttendees(cached);
-        setLoadingAttendees(false);
-      } else {
-        setLoadingAttendees(true);
-      }
+    if (!isOpen || !selectedClass || !isAdmin) return;
 
-      fetchClassAttendees(selectedClass.id)
-        .then((data) => {
-          memoryAttendeesCache.set(selectedClass.id, data);
-          setAttendees(data);
-        })
-        .catch(() => {
-          if (!cached) setAttendees([]);
-        })
-        .finally(() => setLoadingAttendees(false));
+    const classId = selectedClass.id;
+    let isCurrent = true;
+    const cached = getCachedAttendees(classId);
+
+    if ((selectedClass.bookedCount || 0) === 0 && (!cached || cached.length === 0)) {
+      setAttendees([]);
+      setLoadingAttendees(false);
+      return;
     }
-  }, [isOpen, selectedClass?.id, isAdmin]);
+
+    if (cached !== undefined) {
+      setAttendees(cached);
+      setLoadingAttendees(false);
+    } else {
+      setLoadingAttendees(true);
+    }
+
+    fetchClassAttendees(classId)
+      .then((data) => {
+        if (!isCurrent) return;
+        setAttendees(data);
+      })
+      .catch(() => {
+        if (!isCurrent) return;
+        if (cached === undefined) setAttendees([]);
+      })
+      .finally(() => {
+        if (isCurrent) setLoadingAttendees(false);
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [isOpen, selectedClass?.id, selectedClass?.bookedCount, isAdmin]);
 
   if (!isOpen || !selectedClass) return null;
 
@@ -179,8 +209,15 @@ export const ClassDetailsModal: React.FC<ClassDetailsModalProps> = ({
               </div>
 
               {loadingAttendees && attendees.length === 0 ? (
-                <div className="space-y-2 py-1">
-                  <div className="h-10 bg-[#121514] border border-zinc-800/50 rounded-xl animate-pulse" />
+                <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                  {Array.from({ length: Math.min(Math.max(selectedClass.bookedCount || 1, 1), 5) }).map((_, idx) => (
+                    <div
+                      key={idx}
+                      className="p-2.5 px-3.5 bg-[#121514] border border-zinc-800/80 rounded-xl flex items-center"
+                    >
+                      <div className="h-4 sm:h-5 w-36 bg-zinc-800/60 rounded animate-pulse" />
+                    </div>
+                  ))}
                 </div>
               ) : attendees.length === 0 ? (
                 <div className="py-5 text-center text-xs text-zinc-500 font-barlow">
