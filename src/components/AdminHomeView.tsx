@@ -246,17 +246,17 @@ export const AdminHomeView: React.FC<AdminHomeViewProps> = ({
                       <div
                         key={item.id}
                         onClick={() => onSelectClass?.(item)}
-                        className={`border rounded-2xl p-3 sm:p-3.5 transition-all cursor-pointer group shadow-sm flex flex-col justify-between ${
+                        className={`border rounded-2xl p-3 sm:p-3.5 cursor-pointer shadow-sm flex flex-col justify-between select-none [-webkit-tap-highlight-color:transparent] [-webkit-touch-callout:none] ${
                           isPast
                             ? 'bg-neutral-900/40 border-neutral-800/60 opacity-80'
-                            : 'bg-[#121514] hover:bg-neutral-900/90 border-neutral-800 hover:border-neutral-700'
+                            : 'bg-[#121514] border-neutral-800'
                         }`}
                       >
                         <div className="flex items-center justify-between gap-1 mb-2">
-                          <h4 className={`text-xs font-semibold font-barlow tracking-wide truncate ${isPast ? 'text-neutral-500' : 'text-zinc-200 group-hover:text-[#B5B04E] transition-colors'}`}>
+                          <h4 className={`text-xs font-semibold font-barlow tracking-wide truncate ${isPast ? 'text-neutral-500' : 'text-zinc-200'}`}>
                             {item.title}
                           </h4>
-                          <ChevronRight className="w-3.5 h-3.5 text-neutral-500 group-hover:text-white transition-colors shrink-0" />
+                          <ChevronRight className="w-3.5 h-3.5 text-neutral-500 shrink-0" />
                         </div>
 
                         <div>
@@ -281,15 +281,15 @@ export const AdminHomeView: React.FC<AdminHomeViewProps> = ({
                       <div
                         key={item.id}
                         onClick={() => onSelectClass?.(item)}
-                        className={`border rounded-2xl p-4 transition-all cursor-pointer group shadow-sm backdrop-blur-sm ${
+                        className={`border rounded-2xl p-4 cursor-pointer shadow-sm select-none [-webkit-tap-highlight-color:transparent] [-webkit-touch-callout:none] ${
                           isPast
                             ? 'bg-neutral-900/40 border-neutral-800/60 opacity-80'
-                            : 'bg-[#121514] hover:bg-neutral-900/90 border-neutral-800 hover:border-neutral-700'
+                            : 'bg-[#121514] border-neutral-800'
                         }`}
                       >
                         <div className="flex justify-between items-start gap-2 mb-2">
                           <div className="flex-1 min-w-0 pr-1">
-                            <h4 className={`text-sm font-semibold font-barlow tracking-wide truncate ${isPast ? 'text-neutral-500' : 'text-zinc-200 group-hover:text-[#B5B04E] transition-colors'}`}>
+                            <h4 className={`text-sm font-semibold font-barlow tracking-wide truncate ${isPast ? 'text-neutral-500' : 'text-zinc-200'}`}>
                               {item.title}
                             </h4>
                           </div>
@@ -311,7 +311,7 @@ export const AdminHomeView: React.FC<AdminHomeViewProps> = ({
                             </div>
                           </div>
 
-                          <span className="text-xs text-neutral-400 group-hover:text-white flex items-center gap-1 font-barlow font-medium">
+                          <span className="text-xs text-neutral-400 flex items-center gap-1 font-barlow font-medium">
                             <span>Ver</span>
                             <ChevronRight className="w-3.5 h-3.5" />
                           </span>

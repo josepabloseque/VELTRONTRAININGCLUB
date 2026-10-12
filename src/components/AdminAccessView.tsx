@@ -316,7 +316,7 @@ export const AdminAccessView: React.FC<AdminAccessViewProps> = ({ onMembershipUp
                   setSuccessMsg(null);
                   setErrorMsg(null);
                 }}
-                className="bg-[#121514] border border-zinc-800 rounded-2xl p-4 transition-all cursor-pointer active:scale-[0.99] space-y-2.5 shadow-sm"
+                className="bg-[#121514] border border-zinc-800 rounded-2xl p-4 cursor-pointer space-y-2.5 shadow-sm select-none [-webkit-tap-highlight-color:transparent] [-webkit-touch-callout:none]"
               >
                 <div className="flex justify-between items-start gap-2">
                   <div className="min-w-0 flex-1">

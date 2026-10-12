@@ -262,13 +262,13 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
           <button
             type="button"
             onClick={() => setShowFilterCalendar(true)}
-            className="w-full flex items-center justify-between p-3 bg-[#121514] hover:bg-zinc-900 border border-zinc-800/80 hover:border-zinc-700 rounded-2xl transition-all cursor-pointer active:scale-[0.99] group"
+            className="w-full flex items-center justify-between p-3 bg-[#121514] border border-zinc-800/80 rounded-2xl cursor-pointer select-none [-webkit-tap-highlight-color:transparent] [-webkit-touch-callout:none]"
           >
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-[#B5B04E] group-hover:border-[#8E8C3A]/50 transition-colors shrink-0">
+              <div className="w-8 h-8 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-[#B5B04E] shrink-0">
                 <CalendarIcon className="w-4 h-4" />
               </div>
-              <span className="font-bebas text-sm tracking-wider uppercase text-zinc-300 group-hover:text-white transition-colors">
+              <span className="font-bebas text-sm tracking-wider uppercase text-zinc-300">
                 FILTRAR POR FECHA
               </span>
             </div>
@@ -294,23 +294,20 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
             {freeClasses.length > 0 && (
               <div className="grid grid-cols-2 gap-2.5">
                 {freeClasses.map((item) => {
-                  const isCurrentlyEditing = editingClass?.id === item.id;
                   const isPast = isClassPast(item.date, item.time);
 
                   return (
                     <div
                       key={item.id}
                       onClick={() => handleStartEdit(item)}
-                      className={`border rounded-2xl p-3 sm:p-3.5 transition-all group shadow-sm flex flex-col justify-between cursor-pointer active:scale-[0.99] ${
-                        isCurrentlyEditing
-                          ? 'bg-zinc-900 border-[#8E8C3A]'
-                          : isPast
+                      className={`border rounded-2xl p-3 sm:p-3.5 shadow-sm flex flex-col justify-between cursor-pointer select-none [-webkit-tap-highlight-color:transparent] [-webkit-touch-callout:none] ${
+                        isPast
                           ? 'bg-zinc-900/30 border-zinc-800/60 opacity-60'
-                          : 'bg-[#121514] hover:bg-zinc-900/90 border-zinc-800 hover:border-zinc-700'
+                          : 'bg-[#121514] border-zinc-800'
                       }`}
                     >
                       <div className="flex items-center justify-between gap-1 mb-2">
-                        <h3 className={`text-xs font-semibold font-barlow tracking-wide truncate ${isPast ? 'text-zinc-500' : 'text-white group-hover:text-[#B5B04E] transition-colors'}`}>
+                        <h3 className={`text-xs font-semibold font-barlow tracking-wide truncate ${isPast ? 'text-zinc-500' : 'text-white'}`}>
                           {item.title}
                         </h3>
                         <div className="flex items-center gap-1 shrink-0">
@@ -320,7 +317,7 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
                               e.stopPropagation();
                               setClassToDelete(item);
                             }}
-                            className="p-1 text-zinc-500 hover:text-red-400 hover:bg-red-500/10 rounded-md transition-colors"
+                            className="p-1 text-zinc-500 rounded-md select-none [-webkit-tap-highlight-color:transparent] [-webkit-touch-callout:none]"
                             title="Eliminar horario"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -334,7 +331,7 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
                         </span>
 
                         <div className="flex items-center justify-end pt-1.5 border-t border-zinc-800/60">
-                          <div className="flex items-center gap-0.5 text-zinc-400 group-hover:text-[#B5B04E] transition-colors text-[10px] font-semibold uppercase tracking-wider font-barlow">
+                          <div className="flex items-center gap-0.5 text-zinc-400 text-[10px] font-semibold uppercase tracking-wider font-barlow">
                             <span>Editar</span>
                             <ChevronRight className="w-3 h-3" />
                           </div>
@@ -351,24 +348,21 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
               <div className="space-y-2.5">
                 {guidedClasses.map((item) => {
                   const isFull = (item.bookedCount || 0) >= item.capacity;
-                  const isCurrentlyEditing = editingClass?.id === item.id;
                   const isPast = isClassPast(item.date, item.time);
 
                   return (
                     <div
                       key={item.id}
                       onClick={() => handleStartEdit(item)}
-                      className={`border rounded-2xl p-4 transition-all group shadow-sm backdrop-blur-sm cursor-pointer active:scale-[0.99] ${
-                        isCurrentlyEditing
-                          ? 'bg-zinc-900 border-[#8E8C3A]'
-                          : isPast
+                      className={`border rounded-2xl p-4 shadow-sm cursor-pointer select-none [-webkit-tap-highlight-color:transparent] [-webkit-touch-callout:none] ${
+                        isPast
                           ? 'bg-zinc-900/30 border-zinc-800/60 opacity-60'
-                          : 'bg-[#121514] hover:bg-zinc-900/90 border-zinc-800 hover:border-zinc-700'
+                          : 'bg-[#121514] border-zinc-800'
                       }`}
                     >
                       <div className="flex justify-between items-start gap-2 mb-2">
                         <div className="flex-1 min-w-0 pr-1">
-                          <h3 className={`text-sm font-bold font-barlow truncate ${isPast ? 'text-zinc-500' : 'text-white group-hover:text-[#B5B04E] transition-colors'}`}>
+                          <h3 className={`text-sm font-bold font-barlow truncate ${isPast ? 'text-zinc-500' : 'text-white'}`}>
                             {item.title}
                           </h3>
                         </div>
@@ -399,14 +393,14 @@ export const AdminClassesView: React.FC<AdminClassesViewProps> = ({
                               e.stopPropagation();
                               setClassToDelete(item);
                             }}
-                            className="p-1.5 text-zinc-500 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/30 rounded-lg transition-colors"
+                            className="p-1.5 text-zinc-500 border border-transparent rounded-lg select-none [-webkit-tap-highlight-color:transparent] [-webkit-touch-callout:none]"
                             title="Eliminar clase"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
 
                           {/* Acción Editar */}
-                          <div className="flex items-center gap-1 text-zinc-400 group-hover:text-[#B5B04E] transition-colors text-[10px] font-semibold uppercase tracking-wider font-barlow">
+                          <div className="flex items-center gap-1 text-zinc-400 text-[10px] font-semibold uppercase tracking-wider font-barlow">
                             <span>Editar</span>
                             <ChevronRight className="w-3.5 h-3.5" />
                           </div>
