@@ -72,17 +72,6 @@ export const AdminAccessView: React.FC<AdminAccessViewProps> = ({ onMembershipUp
     memoryAthletesCache.filter((a) => a.role !== 'admin' && a.userId !== currentUser?.id)
   );
 
-  useEffect(() => {
-    if (selectedAthlete) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, [selectedAthlete]);
-
   // Auto-ocultar mensaje de confirmación tras 5 segundos
   useEffect(() => {
     if (successMsg) {

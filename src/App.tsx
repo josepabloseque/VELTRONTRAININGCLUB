@@ -540,8 +540,8 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#0A0C0B] text-white flex flex-col font-sans selection:bg-[#8E8C3A]/30 pb-28 sm:pb-32">
-      {/* Header Superior con soporte Safe-Area para Notch / Dynamic Island */}
-      <header className="sticky top-0 z-30 bg-[#0A0C0B] border-b border-zinc-900 px-5 pt-[calc(0.75rem+env(safe-area-inset-top,0px))] pb-3.5">
+      {/* Header Superior Fijo con soporte Safe-Area para Notch / Dynamic Island */}
+      <header className="fixed top-0 left-0 right-0 z-40 bg-[#0A0C0B] border-b border-zinc-900 px-5 pt-[calc(0.75rem+env(safe-area-inset-top,0px))] pb-3.5 before:content-[''] before:fixed before:-top-24 before:left-0 before:right-0 before:h-24 before:bg-[#0A0C0B] before:pointer-events-none">
         <div className="max-w-md mx-auto flex items-center gap-2.5">
           <VeltronLogo size="sm" />
           <p className="font-bebas text-lg tracking-wider text-[#B5B04E] uppercase leading-none">
@@ -549,6 +549,10 @@ const Dashboard: React.FC = () => {
           </p>
         </div>
       </header>
+      {/* Espaciador exacto para mantener el flujo idéntico al píxel */}
+      <div className="pt-[calc(0.75rem+env(safe-area-inset-top,0px))] pb-3.5 border-b border-transparent pointer-events-none select-none shrink-0" aria-hidden="true">
+        <div className="h-8" />
+      </div>
 
       {/* Contenido Principal con espacio de desplazamiento inferior completo */}
       <main className="max-w-md mx-auto w-full px-5 pt-7 sm:pt-8 pb-6 space-y-6">
