@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X, Lock, Clock, Users } from 'lucide-react';
+import { X, Clock, Users, Calendar } from 'lucide-react';
 import type { TrainingClass } from '../types/database';
-import { isClassPast, getLocalDateString } from '../lib/dateUtils';
+import { isClassPast } from '../lib/dateUtils';
 import { fetchClassAttendees, type ClassAttendee } from '../services/bookings.service';
 
 interface ClassDetailsModalProps {
@@ -12,8 +12,25 @@ interface ClassDetailsModalProps {
   isBooked: boolean;
   hasOtherBookingOnDate?: boolean;
   isAdmin?: boolean;
+  isBookingLoading?: boolean;
   onToggleBooking: (classId: string) => void;
 }
+
+const formatClassDateBadge = (dateStr: string): string => {
+  try {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    const dateObj = new Date(y, m - 1, d);
+    const weekday = dateObj.toLocaleDateString('es-ES', { weekday: 'short' });
+    const month = dateObj.toLocaleDateString('es-ES', { month: 'short' });
+    const cleanWeekday = weekday.replace('.', '').trim();
+    const cleanMonth = month.replace('.', '').trim();
+    const capWeekday = cleanWeekday.charAt(0).toUpperCase() + cleanWeekday.slice(1);
+    const capMonth = cleanMonth.charAt(0).toUpperCase() + cleanMonth.slice(1);
+    return `${capWeekday} ${d} ${capMonth}`;
+  } catch {
+    return dateStr;
+  }
+};
 
 const getTitleClass = (title: string) => {
   if (title.length > 34) return 'text-base sm:text-lg tracking-normal';
@@ -33,6 +50,7 @@ export const ClassDetailsModal: React.FC<ClassDetailsModalProps> = ({
   isBooked,
   hasOtherBookingOnDate = false,
   isAdmin = false,
+  isBookingLoading = false,
   onToggleBooking,
 }) => {
   const [attendees, setAttendees] = useState<ClassAttendee[]>(() => {
@@ -84,8 +102,6 @@ export const ClassDetailsModal: React.FC<ClassDetailsModalProps> = ({
   const isFreeTraining = selectedClass.title.toLowerCase().includes('libre') || (selectedClass.capacity || 0) >= 900;
   const isPast = isClassPast(selectedClass.date, selectedClass.time);
   const isFull = !isFreeTraining && (selectedClass.bookedCount || 0) >= selectedClass.capacity && !isBooked;
-  const todayStr = getLocalDateString();
-  const isToday = selectedClass.date === todayStr;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 pt-[calc(env(safe-area-inset-top,0px)+1rem)] pb-[calc(env(safe-area-inset-bottom,0px)+1rem)]">
@@ -116,7 +132,7 @@ export const ClassDetailsModal: React.FC<ClassDetailsModalProps> = ({
           </h2>
         </div>
 
-        {/* Micro-Badges Tácticos: Horario, Cupos y Estado */}
+        {/* Micro-Badges Tácticos: Horario, Fecha y Cupos (Admin) */}
         <div className="flex flex-wrap items-center gap-2.5 mb-6">
           {/* Horario Micro-Badge */}
           <div className="inline-flex items-center gap-2 px-3.5 py-2 bg-zinc-900/90 border border-zinc-800/80 rounded-xl text-xs font-mono text-zinc-200 shadow-sm">
@@ -124,8 +140,18 @@ export const ClassDetailsModal: React.FC<ClassDetailsModalProps> = ({
             <span className="font-semibold tracking-wide text-zinc-200">{selectedClass.time}</span>
           </div>
 
-          {/* Cupos Micro-Badge solo para clases dirigidas */}
-          {!isFreeTraining && (
+          {/* Fecha Micro-Badge */}
+          {selectedClass.date && (
+            <div className="inline-flex items-center gap-2 px-3.5 py-2 bg-zinc-900/90 border border-zinc-800/80 rounded-xl text-xs font-mono text-zinc-200 shadow-sm">
+              <Calendar className="w-3.5 h-3.5 text-[#B5B04E]" />
+              <span className="font-semibold tracking-wide text-zinc-200">
+                {formatClassDateBadge(selectedClass.date)}
+              </span>
+            </div>
+          )}
+
+          {/* Cupos Micro-Badge solo para Administrador en clases dirigidas */}
+          {isAdmin && !isFreeTraining && (
             <div className="inline-flex items-center gap-2 px-3.5 py-2 bg-zinc-900/90 border border-zinc-800/80 rounded-xl text-xs font-mono text-zinc-300 shadow-sm">
               <Users className="w-3.5 h-3.5 text-[#B5B04E]" />
               <div className="flex items-center gap-1">
@@ -204,37 +230,30 @@ export const ClassDetailsModal: React.FC<ClassDetailsModalProps> = ({
                   </svg>
                 </div>
                 <p className="text-xs sm:text-sm text-zinc-300 font-barlow font-normal leading-relaxed max-w-xs">
-                  Ya tienes una clase agendada para este día. Cancélala primero si deseas reservar este horario.
+                  Ya tienes una clase activa reservada para este día. Cancélala primero si deseas reservar este horario.
                 </p>
               </div>
             )}
 
             <button
               onClick={() => onToggleBooking(selectedClass.id)}
-              disabled={(isFull && !isBooked) || (hasOtherBookingOnDate && !isBooked) || (!isToday && !isBooked)}
-              className={`w-full py-4 font-bebas text-lg tracking-wider uppercase rounded-xl transition-all flex items-center justify-center gap-2 leading-none active:scale-[0.98] ${
+              disabled={(isFull && !isBooked) || (hasOtherBookingOnDate && !isBooked) || isBookingLoading}
+              className={`w-full py-4 font-bebas text-lg tracking-wider uppercase rounded-xl transition-colors flex items-center justify-center gap-2 leading-none active:scale-[0.98] ${
                 isBooked
-                  ? 'bg-red-950/60 border border-red-800/80 text-red-300 hover:bg-red-900/80 hover:text-white shadow-[0_0_15px_rgba(220,38,38,0.15)]'
-                  : !isToday
-                  ? 'bg-zinc-900/90 text-zinc-500 border border-zinc-800/90 cursor-not-allowed'
+                  ? 'bg-red-950/60 border border-red-800/80 text-red-300 hover:bg-red-900/80 hover:text-white shadow-[0_0_15px_rgba(220,38,38,0.15)] cursor-pointer'
                   : isFull
                   ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
                   : hasOtherBookingOnDate
                   ? 'bg-zinc-800 text-zinc-500 border border-zinc-700 cursor-not-allowed'
-                  : 'bg-[#8E8C3A] hover:bg-[#B5B04E] text-black shadow-[0_0_20px_rgba(142,140,58,0.25)]'
-              }`}
+                  : 'bg-[#8E8C3A] hover:bg-[#B5B04E] text-black shadow-[0_0_20px_rgba(142,140,58,0.25)] cursor-pointer'
+              } ${isBookingLoading ? 'pointer-events-none' : ''}`}
             >
               {isBooked ? (
                 <span>Cancelar Mi Reserva</span>
-              ) : !isToday ? (
-                <>
-                  <Lock className="w-4 h-4 text-zinc-500 stroke-[2.2]" />
-                  <span>Disponible el Día de la Clase</span>
-                </>
               ) : isFull ? (
                 <span>Clase Llena (Sin cupos)</span>
               ) : hasOtherBookingOnDate ? (
-                <span>Límite Diario Alcanzado (1 clase/día)</span>
+                <span>Límite de 1 Clase Activa por Día</span>
               ) : (
                 <span>Confirmar Mi Lugar</span>
               )}

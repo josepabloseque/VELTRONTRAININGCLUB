@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { supabase } from './lib/supabaseClient';
@@ -18,8 +18,6 @@ import {
   User, 
   House, 
   ChevronRight,
-  CheckCircle2,
-  Edit3,
   Plus
 } from 'lucide-react';
 import { reserveClass, cancelClassBooking } from './services/bookings.service';
@@ -155,6 +153,9 @@ const Dashboard: React.FC = () => {
 
   const [completedClassesCount, setCompletedClassesCount] = useState<number>(0);
   const [bookedDates, setBookedDates] = useState<string[]>([]);
+  const [isBookingLoading, setIsBookingLoading] = useState<boolean>(false);
+  const bookingInProgressRef = useRef<string | null>(null);
+  const lastActionTimeRef = useRef<number>(0);
 
   // Función reutilizable para consultar clases desde Supabase (solo de Hoy en adelante)
   const fetchSupabaseClasses = async () => {
@@ -181,6 +182,8 @@ const Dashboard: React.FC = () => {
         setClasses(sorted);
         setSelectedClass((prev) => {
           if (!prev) return null;
+          // Si el usuario tiene una acción local activa en esta clase, proteger el número optimista
+          if (bookingInProgressRef.current === prev.id) return prev;
           const fresh = sorted.find((c) => c.id === prev.id);
           return fresh ? { ...prev, bookedCount: fresh.bookedCount } : prev;
         });
@@ -233,6 +236,15 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  // Cronómetro interno para auto-actualizar clases pasadas cada 30 segundos
+  const [, setMinuteTicker] = useState<number>(0);
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setMinuteTicker((t) => t + 1);
+    }, 30000);
+    return () => clearInterval(timer);
+  }, []);
+
   // 1. CARGA INICIAL INMEDIATA AL MONTAR:
   // Garantiza que la vista de Inicio (y cualquier pestaña de entrada) tenga los datos cargados desde el primer render
   useEffect(() => {
@@ -243,40 +255,46 @@ const Dashboard: React.FC = () => {
 
   // 2. SUSCRIPCIÓN REALTIME OPTIMIZADA:
   useEffect(() => {
-    if (activeTab === 'perfil' || activeTab === 'inicio') {
+    if (activeTab === 'perfil') {
       fetchUserMetrics();
       fetchUserBookings();
+      return;
     }
 
-    if (activeTab !== 'clases') return;
+    if (activeTab !== 'clases' && activeTab !== 'inicio') return;
 
-    // Actualizar datos al entrar a la pestaña
+    // Actualizar datos al entrar a la pestaña Inicio o Clases
     fetchSupabaseClasses();
     fetchUserBookings();
     fetchUserMetrics();
+
+    let syncTimeout: any;
+    const scheduleSync = () => {
+      clearTimeout(syncTimeout);
+      syncTimeout = setTimeout(() => {
+        fetchSupabaseClasses();
+        fetchUserBookings();
+        fetchUserMetrics();
+      }, 300);
+    };
 
     const channel = supabase
       .channel('realtime_classes_feed')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'classes' },
-        () => {
-          fetchSupabaseClasses();
-        }
+        scheduleSync
       )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'class_bookings' },
-        () => {
-          fetchSupabaseClasses();
-          fetchUserBookings();
-          fetchUserMetrics();
-        }
+        scheduleSync
       )
       .subscribe();
 
     // Limpieza estricta: Desconectar el canal al salir de la pestaña
     return () => {
+      clearTimeout(syncTimeout);
       supabase.removeChannel(channel);
     };
   }, [activeTab, user]);
@@ -386,35 +404,47 @@ const Dashboard: React.FC = () => {
   };
 
   const handleToggleBooking = async (classId: string) => {
-    if (!isActive || !user) return;
+    const now = Date.now();
+    // Protección contra doble-clic o spam rápido (mínimo 600ms entre acciones consecutivas)
+    if (now - lastActionTimeRef.current < 600) return;
+    if (!isActive || !user || isBookingLoading || bookingInProgressRef.current) return;
+
+    lastActionTimeRef.current = now;
+    bookingInProgressRef.current = classId;
+    setIsBookingLoading(true);
 
     const targetClass = classes.find((c) => c.id === classId);
-    if (!targetClass) return;
+    if (!targetClass) {
+      setIsBookingLoading(false);
+      bookingInProgressRef.current = null;
+      return;
+    }
 
     const isPast = isClassPast(targetClass.date, targetClass.time);
     const isAlreadyBooked = bookedClassIds.includes(classId);
 
     // Bloquear reservas en clases que ya finalizaron
     if (isPast && !isAlreadyBooked) {
+      setIsBookingLoading(false);
+      bookingInProgressRef.current = null;
       alert('Esta clase ya ha finalizado y no admite nuevas reservas.');
       return;
     }
 
-    // Regla de Negocio: Validar que el atleta solo pueda agendar clases para la fecha de hoy
-    const todayStr = getLocalDateString();
-    if (!isAdmin && !isAlreadyBooked && targetClass.date !== todayStr) {
-      alert('Solo es posible agendar clases correspondientes a la fecha de hoy.');
-      return;
-    }
-
-    // Regla de Negocio: Validar que el usuario no tenga ya otra clase agendada en la misma fecha
+    // Regla de Negocio: Validar que el usuario no tenga ya otra clase activa/pendiente agendada en la misma fecha
     if (!isAlreadyBooked) {
-      const alreadyHasBookingOnDate = classes.some(
-        (c) => c.id !== classId && bookedClassIds.includes(c.id) && c.date === targetClass.date
+      const alreadyHasActiveBookingOnDate = classes.some(
+        (c) =>
+          c.id !== classId &&
+          bookedClassIds.includes(c.id) &&
+          c.date === targetClass.date &&
+          !isClassPast(c.date, c.time)
       );
 
-      if (alreadyHasBookingOnDate) {
-        alert('Ya tienes una clase reservada para este día. Debes cancelar tu reserva actual si deseas agendar este horario.');
+      if (alreadyHasActiveBookingOnDate) {
+        setIsBookingLoading(false);
+        bookingInProgressRef.current = null;
+        alert('Ya tienes una clase activa reservada para este día. Debes cancelar tu reserva actual si deseas agendar este horario.');
         return;
       }
     }
@@ -441,7 +471,6 @@ const Dashboard: React.FC = () => {
       try {
         await cancelClassBooking(classId, user.id);
         fetchUserMetrics();
-        fetchSupabaseClasses();
         fetchUserBookings();
       } catch (e: any) {
         console.error('Error al cancelar reserva en Supabase:', e);
@@ -458,6 +487,12 @@ const Dashboard: React.FC = () => {
         fetchSupabaseClasses();
         fetchUserBookings();
         alert(e.message || 'No fue posible cancelar la reserva.');
+      } finally {
+        setIsBookingLoading(false);
+        lastActionTimeRef.current = Date.now();
+        setTimeout(() => {
+          bookingInProgressRef.current = null;
+        }, 300);
       }
     } else {
       setBookedClassIds((prev) => [...prev, classId]);
@@ -474,7 +509,6 @@ const Dashboard: React.FC = () => {
       try {
         await reserveClass(classId);
         fetchUserMetrics();
-        fetchSupabaseClasses();
         fetchUserBookings();
       } catch (e: any) {
         console.error('Error al reservar clase con RPC:', e);
@@ -491,6 +525,12 @@ const Dashboard: React.FC = () => {
         fetchSupabaseClasses();
         fetchUserBookings();
         alert(e.message || 'No fue posible reservar el cupo.');
+      } finally {
+        setIsBookingLoading(false);
+        lastActionTimeRef.current = Date.now();
+        setTimeout(() => {
+          bookingInProgressRef.current = null;
+        }, 300);
       }
     }
   };
@@ -550,13 +590,25 @@ const Dashboard: React.FC = () => {
               const monday = new Date(now);
               monday.setDate(now.getDate() + diffToMonday);
 
-              const weekDays = [
+              // Determinar si hay clases programadas o reservas en sábado para esta semana
+              const saturdayDate = new Date(monday);
+              saturdayDate.setDate(monday.getDate() + 5);
+              const saturdayDateStr = getLocalDateString(saturdayDate);
+              const hasSaturdayClass = classes.some((c) => c.date === saturdayDateStr) || bookedDates.includes(saturdayDateStr);
+
+              const baseDays = [
                 { label: 'LUN', full: 'Lunes' },
                 { label: 'MAR', full: 'Martes' },
                 { label: 'MIÉ', full: 'Miércoles' },
                 { label: 'JUE', full: 'Jueves' },
                 { label: 'VIE', full: 'Viernes' },
-              ].map((item, idx) => {
+              ];
+
+              if (hasSaturdayClass) {
+                baseDays.push({ label: 'SÁB', full: 'Sábado' });
+              }
+
+              const weekDays = baseDays.map((item, idx) => {
                 const d = new Date(monday);
                 d.setDate(monday.getDate() + idx);
                 const dateStr = getLocalDateString(d);
@@ -584,35 +636,32 @@ const Dashboard: React.FC = () => {
                     </span>
                   </div>
 
-                  {/* Bloques de días LUN - MAR - MIÉ - JUE - VIE */}
-                  <div className="grid grid-cols-5 gap-2">
+                  {/* Bloques de días (5 o 6 columnas según haya actividad sabatina) */}
+                  <div className={`grid gap-1.5 sm:gap-2 ${hasSaturdayClass ? 'grid-cols-6' : 'grid-cols-5'}`}>
                     {weekDays.map((day) => {
                       const isBooked = activeBookedDates.includes(day.dateStr);
 
                       return (
                         <div
                           key={day.dateStr}
-                          className={`flex flex-col items-center justify-center py-3 px-1 rounded-xl border transition-all ${
+                          className={`flex flex-col items-center justify-center py-3.5 px-1.5 rounded-xl border transition-all ${
                             isBooked
-                              ? 'bg-emerald-950/60 border-emerald-500/70 text-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.2)]'
+                              ? 'bg-[#121514] border-zinc-800 border-b-[3.5px] border-b-[#8E8C3A] shadow-sm'
                               : day.isToday
-                              ? 'bg-zinc-900/90 border-[#8E8C3A]/60 text-zinc-300'
-                              : 'bg-[#0A0C0B] border-zinc-800/80 text-zinc-500'
+                              ? 'bg-zinc-900/60 border-zinc-800'
+                              : 'bg-[#0A0C0B] border-zinc-800/80'
                           }`}
                         >
-                          <span className={`text-[10px] font-bold tracking-wider font-barlow ${isBooked ? 'text-emerald-400' : day.isToday ? 'text-[#B5B04E]' : 'text-zinc-500'}`}>
+                          <span className={`text-[11px] font-bold tracking-wider font-barlow ${
+                            isBooked ? 'text-zinc-300' : day.isToday ? 'text-zinc-400' : 'text-zinc-600'
+                          }`}>
                             {day.label}
                           </span>
-                          <span className={`font-mono text-sm font-bold mt-1 ${isBooked ? 'text-white' : day.isToday ? 'text-zinc-200' : 'text-zinc-500'}`}>
+                          <span className={`font-mono text-base font-bold mt-1.5 leading-none ${
+                            isBooked ? 'text-white' : day.isToday ? 'text-zinc-200' : 'text-zinc-600'
+                          }`}>
                             {day.dayNumber}
                           </span>
-                          <div className="mt-1.5 flex items-center justify-center">
-                            {isBooked ? (
-                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                            ) : (
-                              <div className={`w-1.5 h-1.5 rounded-full ${day.isToday ? 'bg-[#8E8C3A]' : 'bg-zinc-800'}`} />
-                            )}
-                          </div>
                         </div>
                       );
                     })}
@@ -625,18 +674,18 @@ const Dashboard: React.FC = () => {
             <div className="space-y-2.5 pt-1">
               <div className="flex justify-between items-center px-0.5">
                 <h3 className="font-bebas text-base tracking-wider uppercase text-[#B5B04E] leading-none">
-                  Mi Clase de Hoy
+                  Clases Agendadas
                 </h3>
               </div>
 
               {(() => {
                 const todayStr = getLocalDateString();
-                const todayBookedClasses = classes
-                  .filter((c) => bookedClassIds.includes(c.id) && c.date === todayStr)
+                const bookedClassesList = classes
+                  .filter((c) => bookedClassIds.includes(c.id) && !isClassPast(c.date, c.time))
                   .slice()
                   .sort(compareClassesChronological);
 
-                if (todayBookedClasses.length === 0) {
+                if (bookedClassesList.length === 0) {
                   return (
                     <button
                       type="button"
@@ -648,7 +697,7 @@ const Dashboard: React.FC = () => {
                       </div>
                       <div className="space-y-0.5">
                         <span className="text-xs font-bold uppercase tracking-wider text-zinc-300 group-hover:text-[#B5B04E] transition-colors font-barlow block">
-                          Agendar Clase de Hoy
+                          Agendar Clase
                         </span>
                         <span className="text-[11px] text-zinc-500 font-barlow block">
                           Ir a la pestaña de Clases para agendar
@@ -660,24 +709,39 @@ const Dashboard: React.FC = () => {
 
                 return (
                   <div className="space-y-3">
-                    {todayBookedClasses.map((item) => {
-                      const isPast = isClassPast(item.date, item.time);
-                      const isFull = (item.bookedCount || 0) >= item.capacity;
-                      const isFree = item.title.toLowerCase().includes('libre') || (item.capacity || 0) >= 900;
+                    {bookedClassesList.map((item) => {
+                      const isToday = item.date === todayStr;
+
+                      let dateBadge = 'Hoy';
+                      if (!isToday) {
+                        try {
+                          const [y, m, d] = item.date.split('-').map(Number);
+                          const dateObj = new Date(y, m - 1, d);
+                          const tomorrow = new Date();
+                          tomorrow.setDate(tomorrow.getDate() + 1);
+                          if (item.date === getLocalDateString(tomorrow)) {
+                            dateBadge = 'Mañana';
+                          } else {
+                            const weekday = dateObj.toLocaleDateString('es-ES', { weekday: 'short' }).replace('.', '').trim();
+                            const month = dateObj.toLocaleDateString('es-ES', { month: 'short' }).replace('.', '').trim();
+                            const capWeekday = weekday.charAt(0).toUpperCase() + weekday.slice(1);
+                            const capMonth = month.charAt(0).toUpperCase() + month.slice(1);
+                            dateBadge = `${capWeekday} ${d} ${capMonth}`;
+                          }
+                        } catch {
+                          dateBadge = item.date;
+                        }
+                      }
 
                       return (
                         <div
                           key={item.id}
                           onClick={() => setSelectedClass(item)}
-                          className={`border rounded-2xl p-4 transition-all cursor-pointer group shadow-sm ${
-                            isPast
-                              ? 'bg-zinc-900/30 border-zinc-800/60 opacity-60'
-                              : 'bg-[#121514] hover:bg-zinc-900/90 border-zinc-800 hover:border-zinc-700'
-                          }`}
+                          className="bg-[#121514] hover:bg-zinc-900/90 border border-zinc-800 hover:border-zinc-700 rounded-2xl p-4 transition-all cursor-pointer group shadow-sm active:scale-[0.99]"
                         >
                           <div className="flex justify-between items-start gap-2 mb-2">
                             <div className="flex-1 min-w-0 pr-1">
-                              <h4 className={`text-sm font-semibold font-barlow tracking-wide truncate ${isPast ? 'text-zinc-500' : 'text-zinc-200 group-hover:text-[#B5B04E] transition-colors'}`}>
+                              <h4 className="text-sm font-semibold font-barlow tracking-wide truncate text-zinc-200 group-hover:text-white transition-colors">
                                 {item.title}
                               </h4>
                             </div>
@@ -687,24 +751,12 @@ const Dashboard: React.FC = () => {
                           </div>
 
                           <div className="pt-2.5 mt-2.5 border-t border-zinc-800/80 flex items-center justify-between">
-                            {!isFree ? (
-                              <div className="flex items-center gap-1.5 text-xs font-barlow">
-                                <span className="text-zinc-500 font-medium">Inscritos:</span>
-                                <div className="flex items-baseline font-mono font-bold">
-                                  <span className={`text-base ${isPast ? 'text-zinc-500' : isFull ? 'text-red-400' : 'text-[#B5B04E]'}`}>
-                                    {item.bookedCount || 0}
-                                  </span>
-                                  <span className="text-xs text-zinc-500 ml-0.5 font-normal">
-                                    /{item.capacity}
-                                  </span>
-                                </div>
-                              </div>
-                            ) : (
-                              <div />
-                            )}
+                            <span className="text-xs font-barlow font-medium text-zinc-400">
+                              {dateBadge}
+                            </span>
 
                             <div className="flex items-center gap-2">
-                              <span className="text-xs text-zinc-400 group-hover:text-white flex items-center gap-1 font-barlow font-medium">
+                              <span className="text-xs flex items-center gap-1 font-barlow font-medium text-zinc-400 group-hover:text-white transition-colors">
                                 <span>Ver</span>
                                 <ChevronRight className="w-3.5 h-3.5" />
                               </span>
@@ -745,18 +797,13 @@ const Dashboard: React.FC = () => {
               <div className="flex gap-2 overflow-x-auto pb-1.5 pt-0.5 scrollbar-none no-scrollbar snap-x -mx-4 px-4 sm:mx-0 sm:px-0">
                 {classStripDays.map((day) => {
                   const isSelected = selectedClassDate === day.dateStr;
-                  const hasClasses = classes.some((c) => c.date === day.dateStr);
-                  const hasUserBooking = bookedClassIds.some((id) => {
-                    const cls = classes.find((c) => c.id === id);
-                    return cls?.date === day.dateStr;
-                  });
 
                   return (
                     <button
                       key={day.dateStr}
                       type="button"
                       onClick={() => setSelectedClassDate(day.dateStr)}
-                      className={`flex flex-col items-center justify-between min-w-[58px] py-2 px-1 rounded-2xl border transition-all shrink-0 snap-start active:scale-95 select-none ${
+                      className={`flex flex-col items-center justify-center min-w-[56px] py-2.5 px-1.5 rounded-2xl border transition-all shrink-0 snap-start active:scale-95 select-none ${
                         isSelected
                           ? 'bg-[#8E8C3A] border-[#8E8C3A] text-black shadow-md font-bold'
                           : day.isToday
@@ -773,34 +820,12 @@ const Dashboard: React.FC = () => {
                       </span>
 
                       <span
-                        className={`font-mono text-base font-bold my-0.5 ${
+                        className={`font-mono text-base font-bold mt-0.5 leading-none ${
                           isSelected ? 'text-black' : 'text-white'
                         }`}
                       >
                         {day.dayNumber}
                       </span>
-
-                      <div className="flex items-center justify-center gap-1 h-2">
-                        {hasUserBooking ? (
-                          <div
-                            className={`w-1.5 h-1.5 rounded-full ${
-                              isSelected
-                                ? 'bg-black'
-                                : 'bg-[#B5B04E]'
-                            }`}
-                            title="Tienes una clase agendada este día"
-                          />
-                        ) : hasClasses ? (
-                          <div
-                            className={`w-1 h-1 rounded-full ${
-                              isSelected ? 'bg-black/60' : 'bg-zinc-600'
-                            }`}
-                            title="Hay clases programadas"
-                          />
-                        ) : (
-                          <div className="w-1 h-1" />
-                        )}
-                      </div>
                     </button>
                   );
                 })}
@@ -827,26 +852,22 @@ const Dashboard: React.FC = () => {
                             key={item.id}
                             onClick={() => setSelectedClass(item)}
                             className={`border rounded-2xl p-3 sm:p-3.5 transition-all cursor-pointer group shadow-sm flex flex-col justify-between ${
-                              isBooked
-                                ? 'bg-[#8E8C3A]/10 border-[#8E8C3A] ring-1 ring-[#8E8C3A]/40'
-                                : isPast
+                              isPast
                                 ? 'bg-zinc-900/30 border-zinc-800/60 opacity-60'
-                                : 'bg-[#121514] hover:bg-zinc-900/90 border-zinc-800 hover:border-zinc-700'
+                                : isBooked
+                                ? 'bg-[#121514] border-zinc-800 border-l-[3.5px] border-l-[#8E8C3A] hover:border-zinc-700 hover:border-l-[#8E8C3A]'
+                                : 'bg-[#121514] border-zinc-800 hover:border-zinc-700'
                             }`}
                           >
                             <div className="flex items-center justify-between gap-1 mb-2">
-                              <h3 className={`text-xs font-semibold font-barlow tracking-wide truncate ${isBooked ? 'text-[#B5B04E]' : isPast ? 'text-zinc-500' : 'text-zinc-200 group-hover:text-[#B5B04E] transition-colors'}`}>
+                              <h3 className={`text-xs font-semibold font-barlow tracking-wide truncate ${isPast ? 'text-zinc-500' : 'text-zinc-200 group-hover:text-white transition-colors'}`}>
                                 {item.title}
                               </h3>
-                              <ChevronRight className={`w-3.5 h-3.5 transition-colors shrink-0 ${isBooked ? 'text-[#B5B04E]' : 'text-zinc-500 group-hover:text-white'}`} />
+                              <ChevronRight className="w-3.5 h-3.5 transition-colors shrink-0 text-zinc-500 group-hover:text-white" />
                             </div>
 
                             <div>
-                              <span className={`text-[11px] sm:text-xs font-mono font-semibold px-1.5 py-1 rounded-lg block text-center whitespace-nowrap tracking-tight ${
-                                isBooked
-                                  ? 'bg-[#0A0C0B] border border-[#8E8C3A]/40 text-white font-bold'
-                                  : 'bg-[#0A0C0B] border border-zinc-800 text-zinc-200'
-                              }`}>
+                              <span className="text-[11px] sm:text-xs font-mono font-semibold px-1.5 py-1 rounded-lg block text-center whitespace-nowrap tracking-tight bg-[#0A0C0B] border border-zinc-800 text-zinc-200">
                                 {item.time}
                               </span>
                             </div>
@@ -860,6 +881,7 @@ const Dashboard: React.FC = () => {
                   {guidedClasses.length > 0 && (
                     <div className="space-y-2.5">
                       {guidedClasses.map((item) => {
+                        const isBooked = bookedClassIds.includes(item.id);
                         const isFull = (item.bookedCount || 0) >= item.capacity;
                         const isPast = isClassPast(item.date, item.time);
 
@@ -870,35 +892,39 @@ const Dashboard: React.FC = () => {
                             className={`border rounded-2xl p-4 transition-all cursor-pointer group shadow-sm backdrop-blur-sm ${
                               isPast
                                 ? 'bg-zinc-900/30 border-zinc-800/60 opacity-60'
-                                : 'bg-[#121514] hover:bg-zinc-900/90 border-zinc-800 hover:border-zinc-700'
+                                : isBooked
+                                ? 'bg-[#121514] border-zinc-800 border-l-[3.5px] border-l-[#8E8C3A] hover:border-zinc-700 hover:border-l-[#8E8C3A]'
+                                : 'bg-[#121514] border-zinc-800 hover:border-zinc-700'
                             }`}
                           >
                             <div className="flex justify-between items-start gap-2 mb-2">
                               <div className="flex-1 min-w-0 pr-1">
-                                <h3 className={`text-sm font-semibold font-barlow tracking-wide truncate ${isPast ? 'text-zinc-500' : 'text-zinc-200 group-hover:text-[#B5B04E] transition-colors'}`}>
+                                <h3 className={`text-sm font-semibold font-barlow tracking-wide truncate ${
+                                  isPast ? 'text-zinc-500' : 'text-zinc-200 group-hover:text-white transition-colors'
+                                }`}>
                                   {item.title}
                                 </h3>
                               </div>
-                              <span className="text-xs font-mono bg-[#0A0C0B] border border-zinc-800 text-zinc-300 px-2.5 py-1 rounded-lg shrink-0">
+                              <span className="text-xs font-mono px-2.5 py-1 rounded-lg shrink-0 bg-[#0A0C0B] border border-zinc-800 text-zinc-300">
                                 {item.time}
                               </span>
                             </div>
 
                             <div className="pt-2.5 mt-2.5 border-t border-zinc-800/80 flex items-center justify-between">
                               <div className="flex items-center gap-1.5 text-xs font-barlow">
-                                <span className="text-zinc-500 font-medium">Inscritos:</span>
-                                <div className="flex items-baseline font-mono font-bold">
-                                  <span className={`text-base ${isPast ? 'text-zinc-500' : isFull ? 'text-red-400' : 'text-[#B5B04E]'}`}>
-                                    {item.bookedCount || 0}
+                                {isPast ? (
+                                  <span className="font-medium text-zinc-500">
+                                    Finalizada
                                   </span>
-                                  <span className="text-xs text-zinc-500 ml-0.5 font-normal">
-                                    /{item.capacity}
+                                ) : isFull && !isBooked ? (
+                                  <span className="font-bold text-red-400">
+                                    Clase Llena
                                   </span>
-                                </div>
+                                ) : null}
                               </div>
 
                               <div className="flex items-center gap-2">
-                                <span className="text-xs text-zinc-400 group-hover:text-white flex items-center gap-1 font-barlow font-medium">
+                                <span className="text-xs flex items-center gap-1 font-barlow font-medium text-zinc-400 group-hover:text-white transition-colors">
                                   <span>Ver</span>
                                   <ChevronRight className="w-3.5 h-3.5" />
                                 </span>
@@ -942,17 +968,31 @@ const Dashboard: React.FC = () => {
                     {fullName.charAt(0).toUpperCase() || 'U'}
                   </div>
                   <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-base font-bold text-white font-barlow leading-tight truncate">
+                    <div className="flex items-center gap-1.5">
+                      <h3 className="text-base font-bold text-white font-barlow leading-none truncate">
                         {fullName}
                       </h3>
                       {!isAdmin && (
                         <button
+                          type="button"
                           onClick={() => setIsEditProfileOpen(true)}
-                          className="p-1 rounded-lg text-zinc-400 hover:text-[#B5B04E] hover:bg-zinc-800/60 transition-colors"
+                          className="inline-flex items-center justify-center p-1 rounded-lg text-zinc-400 hover:text-[#B5B04E] hover:bg-zinc-800/60 transition-colors shrink-0"
                           title="Editar datos de contacto"
                         >
-                          <Edit3 className="w-3.5 h-3.5" />
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            strokeWidth="1.6"
+                            stroke="currentColor"
+                            className="w-[18px] h-[18px]"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10"
+                            />
+                          </svg>
                         </button>
                       )}
                     </div>
@@ -1037,6 +1077,52 @@ const Dashboard: React.FC = () => {
                     </span>
                   </div>
                 )}
+              </div>
+            </div>
+
+            {/* Canales Oficiales - Barra Unificada Dividida */}
+            <div className="space-y-2.5 pt-2">
+              <span className="text-[10px] uppercase font-bold tracking-wider text-zinc-400 font-barlow px-1 block">
+                Canales Oficiales
+              </span>
+              <div className="flex items-center rounded-xl bg-[#121514] border border-zinc-800/80 divide-x divide-zinc-800/80 overflow-hidden shadow-sm">
+                <a
+                  href="https://www.instagram.com/veltron_trainingclub?utm_source=ig_web_button_share_sheet&vrfl=ZDNlZDc0MzIxNw=="
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 flex items-center justify-center gap-2.5 py-3 px-3 text-zinc-300 select-none [-webkit-tap-highlight-color:transparent] [-webkit-touch-callout:none]"
+                  aria-label="Instagram de Veltron Training Club"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 448 512"
+                    className="w-4 h-4 fill-current text-zinc-400 shrink-0"
+                  >
+                    <path d="M224.3 141a115 115 0 1 0 -.6 230 115 115 0 1 0 .6-230zm-.6 40.4a74.6 74.6 0 1 1 .6 149.2 74.6 74.6 0 1 1 -.6-149.2zm93.4-45.1a26.8 26.8 0 1 1 53.6 0 26.8 26.8 0 1 1 -53.6 0zm129.7 27.2c-1.7-35.9-9.9-67.7-36.2-93.9-26.2-26.2-58-34.4-93.9-36.2-37-2.1-147.9-2.1-184.9 0-35.8 1.7-67.6 9.9-93.9 36.1s-34.4 58-36.2 93.9c-2.1 37-2.1 147.9 0 184.9 1.7 35.9 9.9 67.7 36.2 93.9s58 34.4 93.9 36.2c37 2.1 147.9 2.1 184.9 0 35.9-1.7 67.7-9.9 93.9-36.2 26.2-26.2 34.4-58 36.2-93.9 2.1-37 2.1-147.8 0-184.8zM399 388c-7.8 19.6-22.9 34.7-42.6 42.6-29.5 11.7-99.5 9-132.1 9s-102.7 2.6-132.1-9c-19.6-7.8-34.7-22.9-42.6-42.6-11.7-29.5-9-99.5-9-132.1s-2.6-102.7 9-132.1c7.8-19.6 22.9-34.7 42.6-42.6 29.5-11.7 99.5-9 132.1-9s102.7-2.6 132.1 9c19.6 7.8 34.7 22.9 42.6 42.6 11.7 29.5 9 99.5 9 132.1s2.7 102.7-9 132.1z" />
+                  </svg>
+                  <span className="font-barlow text-xs font-bold uppercase tracking-wider text-zinc-300">
+                    Instagram
+                  </span>
+                </a>
+
+                <a
+                  href="https://chat.whatsapp.com/HRijARQOUNo0KKDL3v94ZB?mode=gi_t"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 flex items-center justify-center gap-2.5 py-3 px-3 text-zinc-300 select-none [-webkit-tap-highlight-color:transparent] [-webkit-touch-callout:none]"
+                  aria-label="WhatsApp de Veltron Training Club"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 448 512"
+                    className="w-4 h-4 fill-current text-zinc-400 shrink-0"
+                  >
+                    <path d="M380.9 97.1c-41.9-42-97.7-65.1-157-65.1-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L0 480 117.7 449.1c32.4 17.7 68.9 27 106.1 27l.1 0c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67.1-157zm-157 341.6c-33.2 0-65.7-8.9-94-25.7l-6.7-4-69.8 18.3 18.6-68.1-4.4-7c-18.5-29.4-28.2-63.3-28.2-98.2 0-101.7 82.8-184.5 184.6-184.5 49.3 0 95.6 19.2 130.4 54.1s56.2 81.2 56.1 130.5c0 101.8-84.9 184.6-186.6 184.6zM325.1 300.5c-5.5-2.8-32.8-16.2-37.9-18-5.1-1.9-8.8-2.8-12.5 2.8s-14.3 18-17.6 21.8c-3.2 3.7-6.5 4.2-12 1.4-32.6-16.3-54-29.1-75.5-66-5.7-9.8 5.7-9.1 16.3-30.3 1.8-3.7 .9-6.9-.5-9.7s-12.5-30.1-17.1-41.2c-4.5-10.8-9.1-9.3-12.5-9.5-3.2-.2-6.9-.2-10.6-.2s-9.7 1.4-14.8 6.9c-5.1 5.6-19.4 19-19.4 46.3s19.9 53.7 22.6 57.4c2.8 3.7 39.1 59.7 94.8 83.8 35.2 15.2 49 16.5 66.6 13.9 10.7-1.6 32.8-13.4 37.4-26.4s4.6-24.1 3.2-26.4c-1.3-2.5-5-3.9-10.5-6.6z" />
+                  </svg>
+                  <span className="font-barlow text-xs font-bold uppercase tracking-wider text-zinc-300">
+                    WhatsApp
+                  </span>
+                </a>
               </div>
             </div>
 
@@ -1136,8 +1222,15 @@ const Dashboard: React.FC = () => {
             hasOtherBookingOnDate={Boolean(
               liveSelectedClass &&
               !bookedClassIds.includes(liveSelectedClass.id) &&
-              classes.some((c) => c.id !== liveSelectedClass.id && bookedClassIds.includes(c.id) && c.date === liveSelectedClass.date)
+              classes.some(
+                (c) =>
+                  c.id !== liveSelectedClass.id &&
+                  bookedClassIds.includes(c.id) &&
+                  c.date === liveSelectedClass.date &&
+                  !isClassPast(c.date, c.time)
+              )
             )}
+            isBookingLoading={isBookingLoading}
             onToggleBooking={handleToggleBooking}
           />
         );
