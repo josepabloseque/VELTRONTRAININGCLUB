@@ -1,12 +1,15 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { supabase } from './lib/supabaseClient';
 import { Gatekeeper } from './components/Gatekeeper';
-import { Welcome } from './pages/Welcome';
-import { ResetPassword } from './pages/ResetPassword';
-import { Terms } from './pages/Terms';
+import { lazyWithRetry } from './utils/lazyWithRetry';
 import { VeltronLogo } from './components/VeltronLogo';
+
+// Carga perezosa protegida contra fallos de despliegue y desincronización de chunks
+const Welcome = lazyWithRetry(() => import('./pages/Welcome').then((m) => ({ default: m.Welcome })));
+const ResetPassword = lazyWithRetry(() => import('./pages/ResetPassword').then((m) => ({ default: m.ResetPassword })));
+const Terms = lazyWithRetry(() => import('./pages/Terms').then((m) => ({ default: m.Terms })));
 import { AdminClassModal } from './components/AdminClassModal';
 import { AdminAccessView } from './components/AdminAccessView';
 import { AdminClassesView } from './components/AdminClassesView';
@@ -1239,6 +1242,12 @@ const Dashboard: React.FC = () => {
   );
 };
 
+const RouteFallback: React.FC = () => (
+  <div className="min-h-screen bg-[#0A0C0B] flex items-center justify-center p-4">
+    <div className="w-8 h-8 rounded-full border-2 border-zinc-800 border-t-[#8E8C3A] animate-spin" />
+  </div>
+);
+
 export default function App() {
   return (
     <BrowserRouter
@@ -1248,21 +1257,23 @@ export default function App() {
       }}
     >
       <AuthProvider>
-        <Routes>
-          <Route path="/welcome" element={<Welcome />} />
-          <Route path="/login" element={<Navigate to="/welcome" replace />} />
-          <Route path="/register" element={<Navigate to="/welcome" replace />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/recuperar-password" element={<ResetPassword />} />
-          <Route path="/terms" element={<Terms />} />
-          <Route path="/terminos" element={<Terms />} />
-          <Route path="/privacy" element={<Terms />} />
-          <Route path="/privacidad" element={<Terms />} />
-          <Route element={<Gatekeeper />}>
-            <Route path="/" element={<Dashboard />} />
-          </Route>
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+        <Suspense fallback={<RouteFallback />}>
+          <Routes>
+            <Route path="/welcome" element={<Welcome />} />
+            <Route path="/login" element={<Navigate to="/welcome" replace />} />
+            <Route path="/register" element={<Navigate to="/welcome" replace />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/recuperar-password" element={<ResetPassword />} />
+            <Route path="/terms" element={<Terms />} />
+            <Route path="/terminos" element={<Terms />} />
+            <Route path="/privacy" element={<Terms />} />
+            <Route path="/privacidad" element={<Terms />} />
+            <Route element={<Gatekeeper />}>
+              <Route path="/" element={<Dashboard />} />
+            </Route>
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
       </AuthProvider>
     </BrowserRouter>
   );
